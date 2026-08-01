@@ -1,7 +1,7 @@
 # =====================================================
 # AC-RAG Adaptive Retriever
-# Adaptive Query Refinement + Quality Checking
-# Adaptive Reranking Threshold
+# Adaptive Query Analysis + Hybrid Retrieval + Reranking
+# Final Stable Version
 # =====================================================
 
 
@@ -9,19 +9,14 @@ import os
 import sys
 
 
-# Add retrieval folder path
-
 CURRENT_DIR = os.path.dirname(
     os.path.abspath(__file__)
 )
 
-sys.path.append(
-    CURRENT_DIR
-)
+sys.path.append(CURRENT_DIR)
 
 
 from reranker import Reranker
-
 
 
 
@@ -43,8 +38,7 @@ class AdaptiveRetriever:
         self.retriever = retriever
 
 
-
-        if reranker is not None:
+        if reranker:
 
             self.reranker = reranker
 
@@ -54,9 +48,68 @@ class AdaptiveRetriever:
 
 
 
-    # =================================================
-    # Retrieval Quality Checking
-    # =================================================
+    # =====================================================
+    # Query Complexity Detection
+    # =====================================================
+
+
+    def analyze_query(
+        self,
+        query
+    ):
+
+
+        words = query.split()
+
+
+        complex_words = [
+            "methods",
+            "techniques",
+            "explain",
+            "compare",
+            "advantages",
+            "limitations",
+            "improve",
+            "framework",
+            "architecture",
+            "process",
+            "everything",
+            "detailed"
+        ]
+
+
+        score = 0
+
+
+        for word in complex_words:
+
+            if word.lower() in query.lower():
+
+                score += 1
+
+
+
+        if len(words) > 10:
+
+            score += 1
+
+
+
+        if score >= 2:
+
+            return "Complex"
+
+
+        else:
+
+            return "Simple"
+
+
+
+
+    # =====================================================
+    # Retrieval Quality Check
+    # =====================================================
 
 
     def check_quality(
@@ -71,14 +124,13 @@ class AdaptiveRetriever:
 
 
 
-        total_length = 0
-
+        total = 0
 
 
         for doc in docs:
 
 
-            if isinstance(doc, dict):
+            if isinstance(doc,dict):
 
                 text = doc.get(
                     "text",
@@ -92,35 +144,27 @@ class AdaptiveRetriever:
 
 
 
-            total_length += len(text)
+            total += len(text)
 
 
 
-        avg_length = (
-            total_length / len(docs)
-        )
+        avg = total / len(docs)
 
 
         print(
             "Average document length:",
-            avg_length
+            avg
         )
 
 
-
-        if avg_length > 200:
-
-            return True
-
-
-        return False
+        return avg > 200
 
 
 
 
-    # =================================================
+    # =====================================================
     # Query Reformulation
-    # =================================================
+    # =====================================================
 
 
     def reformulate_query(
@@ -137,7 +181,7 @@ class AdaptiveRetriever:
 
 
         print(
-            "\nReformulated Query:",
+            "Reformulated Query:",
             new_query
         )
 
@@ -147,81 +191,9 @@ class AdaptiveRetriever:
 
 
 
-    # =================================================
-    # Adaptive Threshold
-    # =================================================
-
-
-    def adaptive_threshold(
-        self,
-        ranked_docs
-    ):
-
-
-        if not ranked_docs:
-
-            return 0
-
-
-
-        scores = []
-
-
-
-        for doc in ranked_docs:
-
-
-            scores.append(
-                doc.get(
-                    "reranker_score",
-                    0
-                )
-            )
-
-
-
-        max_score = max(
-            scores
-        )
-
-
-
-        # Threshold based on strongest evidence
-
-        threshold = (
-            max_score * 0.35
-        )
-
-
-
-        # Minimum safety threshold
-
-        if threshold < 0.10:
-
-            threshold = 0.10
-
-
-
-        print(
-            "Maximum reranker score:",
-            max_score
-        )
-
-
-        print(
-            "Adaptive threshold:",
-            threshold
-        )
-
-
-        return threshold
-
-
-
-
-    # =================================================
-    # Adaptive Retrieval Pipeline
-    # =================================================
+    # =====================================================
+    # Main Adaptive Retrieval Pipeline
+    # =====================================================
 
 
     def retrieve(
@@ -242,16 +214,47 @@ class AdaptiveRetriever:
 
 
 
-        # ---------------------------------
-        # Initial Retrieval
-        # ---------------------------------
+        # -------------------------
+        # Analyze Query
+        # -------------------------
+
+
+        query_type = self.analyze_query(
+            query
+        )
+
+
+        print(
+            "Query Type:",
+            query_type
+        )
+
+
+
+        # -------------------------
+        # Dynamic Retrieval Size
+        # -------------------------
+
+
+        if query_type == "Complex":
+
+            top_k = 40
+
+        else:
+
+            top_k = 20
+
+
+
+        # -------------------------
+        # First Retrieval
+        # -------------------------
 
 
         docs = self.retriever.search(
             query,
-            top_k=20
+            top_k=top_k
         )
-
 
 
         print(
@@ -261,9 +264,9 @@ class AdaptiveRetriever:
 
 
 
-        # ---------------------------------
+        # -------------------------
         # Quality Check
-        # ---------------------------------
+        # -------------------------
 
 
         quality = self.check_quality(
@@ -271,12 +274,11 @@ class AdaptiveRetriever:
         )
 
 
-
         if not quality:
 
 
             print(
-                "\nLow quality retrieval detected..."
+                "Low quality detected, reformulating query..."
             )
 
 
@@ -285,17 +287,16 @@ class AdaptiveRetriever:
             )
 
 
-
             docs = self.retriever.search(
                 query,
-                top_k=20
+                top_k=top_k
             )
 
 
 
-        # ---------------------------------
+        # -------------------------
         # Reranking
-        # ---------------------------------
+        # -------------------------
 
 
         print(
@@ -310,56 +311,27 @@ class AdaptiveRetriever:
 
 
 
-        # ---------------------------------
-        # Adaptive Filtering
-        # ---------------------------------
+        # -------------------------
+        # Stable Selection
+        # -------------------------
 
 
-        threshold = self.adaptive_threshold(
-            ranked_docs
-        )
+        if len(ranked_docs) >= 5:
 
 
-
-        filtered_docs = []
-
+            final_docs = ranked_docs[:5]
 
 
-        for doc in ranked_docs:
+        else:
 
-
-            score = doc.get(
-                "reranker_score",
-                0
-            )
-
-
-
-            if score >= threshold:
-
-                filtered_docs.append(
-                    doc
-                )
+            final_docs = ranked_docs
 
 
 
         print(
-            "Documents after filtering:",
-            len(filtered_docs)
+            "Final selected documents:",
+            len(final_docs)
         )
 
 
-
-        # ---------------------------------
-        # Safety fallback
-        # ---------------------------------
-
-
-        if len(filtered_docs) == 0:
-
-
-            filtered_docs = ranked_docs[:2]
-
-
-
-        return filtered_docs[:5]
+        return final_docs

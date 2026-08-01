@@ -1,0 +1,44 @@
+[
+    {
+        "question": "What is Retrieval Augmented Generation?",
+        "expected_keywords": [
+            "external knowledge",
+            "retrieval",
+            "large language models",
+            "hallucination"
+        ]
+    },
+    {
+        "question": "How does RAG reduce hallucination?",
+        "expected_keywords": [
+            "external database",
+            "retrieved documents",
+            "factual accuracy"
+        ]
+    },
+    {
+        "question": "What are the methods used to improve retrieval quality in RAG systems?",
+        "expected_keywords": [
+            "query rewriting",
+            "metadata",
+            "reranking",
+            "hybrid retrieval"
+        ]
+    },
+    {
+        "question": "Explain Advanced RAG.",
+        "expected_keywords": [
+            "pre-retrieval",
+            "post-retrieval",
+            "indexing"
+        ]
+    },
+    {
+        "question": "What are the limitations of Large Language Models?",
+        "expected_keywords": [
+            "hallucination",
+            "outdated knowledge",
+            "domain specific"
+        ]
+    }
+]
