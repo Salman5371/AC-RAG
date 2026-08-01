@@ -1,153 +1,49 @@
 from sentence_transformers import CrossEncoder
 
-import pickle
-import faiss
 
-from sentence_transformers import SentenceTransformer
+class Reranker:
 
+    def __init__(self):
 
-# ==========================
-# Load chunks
-# ==========================
+        print("Loading reranker model...")
 
-print("Loading chunks...")
-
-with open(
-    "embeddings/chunks.pkl",
-    "rb"
-) as f:
-    chunks = pickle.load(f)
+        self.model = CrossEncoder(
+            "BAAI/bge-reranker-base"
+        )
 
 
+    def rerank(
+        self,
+        query,
+        documents
+    ):
 
-# ==========================
-# Load FAISS
-# ==========================
-
-index = faiss.read_index(
-    "embeddings/faiss.index"
-)
-
+        pairs = []
 
 
-# ==========================
-# Embedding model
-# ==========================
+        for doc in documents:
 
-embedding_model = SentenceTransformer(
-    "BAAI/bge-small-en-v1.5"
-)
-
-
-
-# ==========================
-# Reranker Model
-# ==========================
-
-print("Loading reranker...")
-
-reranker = CrossEncoder(
-    "BAAI/bge-reranker-base"
-)
+            pairs.append(
+                [
+                    query,
+                    doc
+                ]
+            )
 
 
-
-# ==========================
-# Query
-# ==========================
-
-query = input(
-    "\nEnter question: "
-)
+        scores = self.model.predict(
+            pairs
+        )
 
 
-
-# ==========================
-# Retrieve candidates
-# ==========================
-
-query_embedding = embedding_model.encode(
-    [query],
-    normalize_embeddings=True
-)
-
-
-scores, indices = index.search(
-    query_embedding,
-    20
-)
+        results = sorted(
+            zip(
+                documents,
+                scores
+            ),
+            key=lambda x:x[1],
+            reverse=True
+        )
 
 
-candidates = []
-
-
-for idx in indices[0]:
-
-    candidates.append(
-        chunks[idx]
-    )
-
-
-
-print(
-    "\nCandidates:",
-    len(candidates)
-)
-
-
-
-# ==========================
-# Reranking
-# ==========================
-
-pairs = []
-
-
-for chunk in candidates:
-
-    pairs.append(
-        [
-            query,
-            chunk
-        ]
-    )
-
-
-rerank_scores = reranker.predict(
-    pairs
-)
-
-
-
-results = sorted(
-    zip(
-        candidates,
-        rerank_scores
-    ),
-    key=lambda x:x[1],
-    reverse=True
-)
-
-
-
-# ==========================
-# Output
-# ==========================
-
-print(
-    "\n========== RERANKED RESULTS =========="
-)
-
-
-for i,(text,score) in enumerate(results[:5]):
-
-    print(
-        "\nResult",
-        i+1,
-        "Score:",
-        score
-    )
-
-    print(
-        text[:700]
-    )
+        return results
