@@ -1,0 +1,186 @@
+# =====================================================
+# AC-RAG Project Git Ignore
+# Adaptive Self-Correcting Retrieval-Augmented Generation
+# =====================================================
+
+
+# ==========================
+# Python Environment
+# ==========================
+
+venv/
+env/
+.venv/
+ENV/
+
+*.py[cod]
+*$py.class
+__pycache__/
+
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+
+# ==========================
+# Environment Variables
+# ==========================
+
+.env
+.env.*
+*.env
+
+
+# ==========================
+# Jupyter Notebook
+# ==========================
+
+.ipynb_checkpoints/
+
+
+# ==========================
+# Large AI Models
+# ==========================
+
+# HuggingFace models
+models/
+
+# Model weights
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+
+# Tensorflow/Pytorch checkpoints
+checkpoint/
+checkpoints/
+
+
+# ==========================
+# Vector Database
+# ==========================
+
+# FAISS index
+*.index
+
+# Embedding files
+embeddings/
+embedding/
+vectorstore/
+
+# Pickle databases
+*.pkl
+*.pickle
+
+
+# ==========================
+# Dataset / Documents
+# ==========================
+
+# Ignore raw private datasets
+data/
+
+# Ignore temporary documents
+*.docx
+*.xlsx
+
+# Ignore downloaded papers if needed
+# documents/
+
+
+# ==========================
+# Logs
+# ==========================
+
+logs/
+*.log
+
+
+# ==========================
+# Cache Files
+# ==========================
+
+.cache/
+.cache/*
+huggingface_cache/
+.huggingface/
+
+
+# ==========================
+# IDE Settings
+# ==========================
+
+.vscode/
+.idea/
+
+# VS Code temporary files
+*.code-workspace
+
+
+# ==========================
+# OS Files
+# ==========================
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Mac
+.DS_Store
+
+
+# ==========================
+# Temporary Files
+# ==========================
+
+*.tmp
+*.temp
+*.swp
+*.bak
+
+
+# ==========================
+# Build Files
+# ==========================
+
+dist/
+build/
+*.egg-info/
+
+
+# ==========================
+# Secrets
+# ==========================
+
+*.key
+*.pem
+credentials.json
+
+
+# ==========================
+# RAG Generated Files
+# ==========================
+
+faiss.index
+chunks.pkl
+bm25.pkl
+retriever.pkl
+reranker_cache/
+
+
+# ==========================
+# Local Testing Output
+# ==========================
+
+outputs/
+results/
+reports/
+
+
+# ==========================
+# Keep Important Empty Folders
+# ==========================
+
+!.gitkeep
