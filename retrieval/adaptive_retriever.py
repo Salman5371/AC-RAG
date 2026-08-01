@@ -1,4 +1,25 @@
+# =====================================================
+# AC-RAG Adaptive Retriever
+# Adaptive Query Refinement + Quality Checking + Reranking
+# =====================================================
+
+
+import os
+import sys
+
+
+# Add retrieval folder to path
+CURRENT_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
+
+sys.path.append(CURRENT_DIR)
+
+
+
 from reranker import Reranker
+
+
 
 
 class AdaptiveRetriever:
@@ -7,34 +28,51 @@ class AdaptiveRetriever:
     def __init__(
         self,
         retriever,
-        reranker
+        reranker=None
     ):
 
-        print("Loading system...")
+
+        print("Loading Adaptive Retrieval System...")
+
 
         self.retriever = retriever
 
-        self.reranker = reranker
+
+        # If reranker passed from outside
+        # use it, otherwise create new one
+
+        if reranker is not None:
+
+            self.reranker = reranker
+
+        else:
+
+            self.reranker = Reranker()
 
 
 
-    # ==================================
+    # =================================================
     # Retrieval Quality Checking
-    # ==================================
+    # =================================================
+
 
     def check_quality(
         self,
         docs
     ):
 
+
         if not docs:
+
             return False
+
 
 
         total_length = 0
 
 
         for doc in docs:
+
 
             if isinstance(doc, dict):
 
@@ -43,18 +81,26 @@ class AdaptiveRetriever:
                     ""
                 )
 
+
+            elif isinstance(doc, tuple):
+
+                text = str(
+                    doc[0]
+                )
+
+
             else:
 
-                text = doc
+                text = str(doc)
+
 
 
             total_length += len(text)
 
 
 
-        avg_length = (
-            total_length / len(docs)
-        )
+        avg_length = total_length / len(docs)
+
 
 
         print(
@@ -62,6 +108,9 @@ class AdaptiveRetriever:
             avg_length
         )
 
+
+
+        # quality threshold
 
         if avg_length > 200:
 
@@ -72,9 +121,11 @@ class AdaptiveRetriever:
 
 
 
-    # ==================================
+
+    # =================================================
     # Query Reformulation
-    # ==================================
+    # =================================================
+
 
     def reformulate_query(
         self,
@@ -83,16 +134,14 @@ class AdaptiveRetriever:
 
 
         new_query = (
-            "Provide detailed information about: "
-            + query
+            "Provide detailed academic information about: "
+            +
+            query
         )
 
 
         print(
-            "\nReformulated Query:"
-        )
-
-        print(
+            "\nReformulated Query:",
             new_query
         )
 
@@ -101,14 +150,17 @@ class AdaptiveRetriever:
 
 
 
-    # ==================================
+
+    # =================================================
     # Adaptive Retrieval Pipeline
-    # ==================================
+    # =================================================
+
 
     def retrieve(
         self,
         query
     ):
+
 
 
         print(
@@ -123,9 +175,10 @@ class AdaptiveRetriever:
 
 
 
-        # -------------------------------
+        # -------------------------
         # First Retrieval
-        # -------------------------------
+        # -------------------------
+
 
         docs = self.retriever.search(
             query,
@@ -135,15 +188,16 @@ class AdaptiveRetriever:
 
 
         print(
-            "\nRetrieved documents:",
+            "Retrieved documents:",
             len(docs)
         )
 
 
 
-        # -------------------------------
+        # -------------------------
         # Quality Check
-        # -------------------------------
+        # -------------------------
+
 
         quality = self.check_quality(
             docs
@@ -155,7 +209,7 @@ class AdaptiveRetriever:
 
 
             print(
-                "\nLow quality retrieval detected"
+                "\nLow quality retrieval detected..."
             )
 
 
@@ -172,14 +226,15 @@ class AdaptiveRetriever:
 
 
 
-        # -------------------------------
-        # Cross Encoder Reranking
-        # -------------------------------
+        # -------------------------
+        # Reranking
+        # -------------------------
 
 
         print(
             "\nReranking documents..."
         )
+
 
 
         ranked_docs = self.reranker.rerank(
@@ -189,6 +244,6 @@ class AdaptiveRetriever:
 
 
 
-        # return top 5
+        # Return best documents
 
         return ranked_docs[:5]
