@@ -1,6 +1,6 @@
 # =====================================================
-# AC-RAG Final Pipeline
-# Adaptive Retrieval + Reranking + Qwen Generation
+# AC-RAG Final Answer Pipeline
+# Adaptive Retrieval + Qwen Generation + Sources
 # =====================================================
 
 
@@ -8,8 +8,9 @@ import sys
 import os
 
 
+
 # ==========================
-# Add Project Root Path
+# Add Project Root
 # ==========================
 
 PROJECT_ROOT = os.path.dirname(
@@ -18,7 +19,10 @@ PROJECT_ROOT = os.path.dirname(
     )
 )
 
-sys.path.append(PROJECT_ROOT)
+
+sys.path.append(
+    PROJECT_ROOT
+)
 
 
 
@@ -34,33 +38,34 @@ from generation.qwen_generator import QwenGenerator
 
 
 
-print("\n========== AC-RAG SYSTEM ==========\n")
+
+print(
+    "\n========== AC-RAG SYSTEM ==========\n"
+)
 
 
 
 # ==========================
-# Load Retriever
+# Load Retrieval System
 # ==========================
 
-print("Loading Hybrid Retriever...")
+print(
+    "Loading Hybrid Retriever..."
+)
+
 
 retriever = HybridRetriever()
 
 
 
-# ==========================
-# Load Reranker
-# ==========================
+print(
+    "Loading Reranker..."
+)
 
-print("Loading Reranker...")
 
 reranker = Reranker()
 
 
-
-# ==========================
-# Adaptive Retrieval
-# ==========================
 
 adaptive_retriever = AdaptiveRetriever(
     retriever,
@@ -73,14 +78,18 @@ adaptive_retriever = AdaptiveRetriever(
 # Load Generator
 # ==========================
 
-print("Loading Qwen Generator...")
+print(
+    "Loading Qwen Generator..."
+)
+
 
 generator = QwenGenerator()
 
 
 
+
 # ==========================
-# User Query
+# Question
 # ==========================
 
 query = input(
@@ -89,8 +98,9 @@ query = input(
 
 
 
+
 # ==========================
-# Retrieve Documents
+# Retrieve Context
 # ==========================
 
 documents = adaptive_retriever.retrieve(
@@ -100,14 +110,15 @@ documents = adaptive_retriever.retrieve(
 
 
 print(
-    "\nRetrieved documents:",
+    "\nSelected Evidence:",
     len(documents)
 )
 
 
 
+
 # ==========================
-# Context Construction
+# Build Context
 # ==========================
 
 context = ""
@@ -116,28 +127,14 @@ context = ""
 for doc in documents:
 
 
-    if isinstance(doc, dict):
-
-        context += doc.get(
-            "text",
-            ""
-        )
-
-
-    elif isinstance(doc, tuple):
-
-        context += str(
-            doc[0]
-        )
-
-
-    else:
-
-        context += str(doc)
-
+    context += doc.get(
+        "text",
+        ""
+    )
 
 
     context += "\n\n"
+
 
 
 
@@ -152,8 +149,9 @@ answer = generator.generate(
 
 
 
+
 # ==========================
-# Final Output
+# Final Answer
 # ==========================
 
 print(
@@ -161,4 +159,64 @@ print(
 )
 
 
-print(answer)
+print(
+    answer
+)
+
+
+
+
+# ==========================
+# Sources
+# ==========================
+
+print(
+    "\n========== SOURCES ==========\n"
+)
+
+
+
+for i,doc in enumerate(documents):
+
+
+    print(
+        "Source:",
+        i+1
+    )
+
+
+    print(
+        "Chunk ID:",
+        doc.get(
+            "chunk_id"
+        )
+    )
+
+
+    print(
+        "FAISS Score:",
+        doc.get(
+            "faiss_score"
+        )
+    )
+
+
+    print(
+        "Hybrid Score:",
+        doc.get(
+            "hybrid_score"
+        )
+    )
+
+
+    print(
+        "Reranker Score:",
+        doc.get(
+            "reranker_score"
+        )
+    )
+
+
+    print(
+        "---------------------------"
+    )

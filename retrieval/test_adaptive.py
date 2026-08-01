@@ -1,15 +1,38 @@
+# =====================================================
+# AC-RAG Adaptive Retrieval Test
+# Hybrid Retrieval + Reranking + Metadata Output
+# =====================================================
+
+
 from retriever import HybridRetriever
 from reranker import Reranker
 from adaptive_retriever import AdaptiveRetriever
 
 
-print("Loading system...")
 
+print("\n========== AC-RAG ADAPTIVE TEST ==========\n")
+
+
+
+# ==========================
+# Load Retriever
+# ==========================
 
 retriever = HybridRetriever()
 
+
+
+# ==========================
+# Load Reranker
+# ==========================
+
 reranker = Reranker()
 
+
+
+# ==========================
+# Adaptive Retriever
+# ==========================
 
 adaptive = AdaptiveRetriever(
     retriever,
@@ -17,59 +40,112 @@ adaptive = AdaptiveRetriever(
 )
 
 
+
+# ==========================
+# User Query
+# ==========================
+
 query = input(
-    "Enter question: "
+    "\nEnter question: "
 )
 
+
+
+# ==========================
+# Retrieve + Rerank
+# ==========================
 
 results = adaptive.retrieve(
     query
 )
 
 
-print("\n========== FINAL RESULTS ==========")
+
+# ==========================
+# Display Results
+# ==========================
+
+print(
+    "\n========== FINAL RESULTS =========="
+)
 
 
-for i,item in enumerate(results):
+
+for i, item in enumerate(results):
+
 
     print(
         "\nResult:",
-        i+1
+        i + 1
     )
 
 
-    if isinstance(item, tuple):
+    print(
+        "--------------------------------"
+    )
 
-        text = item[0]
-        score = item[1]
 
-        print(
-            "Score:",
-            float(score)
+    # Metadata output
+
+    print(
+        "Chunk ID:",
+        item.get(
+            "chunk_id",
+            "N/A"
         )
+    )
 
-        print(
-            "\nContext:"
+
+    print(
+        "BM25 Score:",
+        item.get(
+            "bm25_score",
+            0
         )
+    )
 
-        print(
-            text[:700]
+
+    print(
+        "FAISS Score:",
+        item.get(
+            "faiss_score",
+            0
         )
+    )
 
 
-    elif isinstance(item, dict):
-
-        print(
-            item["score"]
+    print(
+        "Hybrid Score:",
+        item.get(
+            "hybrid_score",
+            0
         )
+    )
 
-        print(
-            item["text"][:700]
+
+    print(
+        "Reranker Score:",
+        item.get(
+            "reranker_score",
+            0
         )
+    )
 
 
-    else:
+    print(
+        "\nContext:"
+    )
 
-        print(
-            item[:700]
-        )
+
+    print(
+        item.get(
+            "text",
+            ""
+        )[:700]
+    )
+
+
+
+print(
+    "\n========== TEST COMPLETE =========="
+)

@@ -1,6 +1,7 @@
 # =====================================================
 # AC-RAG Adaptive Retriever
-# Adaptive Query Refinement + Quality Checking + Reranking
+# Adaptive Query Refinement + Quality Checking
+# Adaptive Reranking Threshold
 # =====================================================
 
 
@@ -8,13 +9,15 @@ import os
 import sys
 
 
-# Add retrieval folder to path
+# Add retrieval folder path
+
 CURRENT_DIR = os.path.dirname(
     os.path.abspath(__file__)
 )
 
-sys.path.append(CURRENT_DIR)
-
+sys.path.append(
+    CURRENT_DIR
+)
 
 
 from reranker import Reranker
@@ -32,14 +35,14 @@ class AdaptiveRetriever:
     ):
 
 
-        print("Loading Adaptive Retrieval System...")
+        print(
+            "Loading Adaptive Retrieval System..."
+        )
 
 
         self.retriever = retriever
 
 
-        # If reranker passed from outside
-        # use it, otherwise create new one
 
         if reranker is not None:
 
@@ -71,6 +74,7 @@ class AdaptiveRetriever:
         total_length = 0
 
 
+
         for doc in docs:
 
 
@@ -79,13 +83,6 @@ class AdaptiveRetriever:
                 text = doc.get(
                     "text",
                     ""
-                )
-
-
-            elif isinstance(doc, tuple):
-
-                text = str(
-                    doc[0]
                 )
 
 
@@ -99,8 +96,9 @@ class AdaptiveRetriever:
 
 
 
-        avg_length = total_length / len(docs)
-
+        avg_length = (
+            total_length / len(docs)
+        )
 
 
         print(
@@ -109,8 +107,6 @@ class AdaptiveRetriever:
         )
 
 
-
-        # quality threshold
 
         if avg_length > 200:
 
@@ -152,6 +148,78 @@ class AdaptiveRetriever:
 
 
     # =================================================
+    # Adaptive Threshold
+    # =================================================
+
+
+    def adaptive_threshold(
+        self,
+        ranked_docs
+    ):
+
+
+        if not ranked_docs:
+
+            return 0
+
+
+
+        scores = []
+
+
+
+        for doc in ranked_docs:
+
+
+            scores.append(
+                doc.get(
+                    "reranker_score",
+                    0
+                )
+            )
+
+
+
+        max_score = max(
+            scores
+        )
+
+
+
+        # Threshold based on strongest evidence
+
+        threshold = (
+            max_score * 0.35
+        )
+
+
+
+        # Minimum safety threshold
+
+        if threshold < 0.10:
+
+            threshold = 0.10
+
+
+
+        print(
+            "Maximum reranker score:",
+            max_score
+        )
+
+
+        print(
+            "Adaptive threshold:",
+            threshold
+        )
+
+
+        return threshold
+
+
+
+
+    # =================================================
     # Adaptive Retrieval Pipeline
     # =================================================
 
@@ -160,7 +228,6 @@ class AdaptiveRetriever:
         self,
         query
     ):
-
 
 
         print(
@@ -175,9 +242,9 @@ class AdaptiveRetriever:
 
 
 
-        # -------------------------
-        # First Retrieval
-        # -------------------------
+        # ---------------------------------
+        # Initial Retrieval
+        # ---------------------------------
 
 
         docs = self.retriever.search(
@@ -194,9 +261,9 @@ class AdaptiveRetriever:
 
 
 
-        # -------------------------
+        # ---------------------------------
         # Quality Check
-        # -------------------------
+        # ---------------------------------
 
 
         quality = self.check_quality(
@@ -226,15 +293,14 @@ class AdaptiveRetriever:
 
 
 
-        # -------------------------
+        # ---------------------------------
         # Reranking
-        # -------------------------
+        # ---------------------------------
 
 
         print(
             "\nReranking documents..."
         )
-
 
 
         ranked_docs = self.reranker.rerank(
@@ -244,6 +310,56 @@ class AdaptiveRetriever:
 
 
 
-        # Return best documents
+        # ---------------------------------
+        # Adaptive Filtering
+        # ---------------------------------
 
-        return ranked_docs[:5]
+
+        threshold = self.adaptive_threshold(
+            ranked_docs
+        )
+
+
+
+        filtered_docs = []
+
+
+
+        for doc in ranked_docs:
+
+
+            score = doc.get(
+                "reranker_score",
+                0
+            )
+
+
+
+            if score >= threshold:
+
+                filtered_docs.append(
+                    doc
+                )
+
+
+
+        print(
+            "Documents after filtering:",
+            len(filtered_docs)
+        )
+
+
+
+        # ---------------------------------
+        # Safety fallback
+        # ---------------------------------
+
+
+        if len(filtered_docs) == 0:
+
+
+            filtered_docs = ranked_docs[:2]
+
+
+
+        return filtered_docs[:5]
