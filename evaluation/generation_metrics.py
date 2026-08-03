@@ -1,14 +1,17 @@
 # =====================================================
 # AC-RAG Generation Evaluation
-# Answer Relevance + Context Usage
+# Keyword Coverage + Semantic Similarity
 # =====================================================
 
 
-import json
 import os
 import sys
+import numpy as np
 
 
+# =====================================================
+# Add Project Root Path
+# =====================================================
 
 PROJECT_ROOT = os.path.dirname(
     os.path.dirname(
@@ -16,46 +19,36 @@ PROJECT_ROOT = os.path.dirname(
     )
 )
 
-
-sys.path.append(
+sys.path.insert(
+    0,
     PROJECT_ROOT
 )
 
+
+
+from sentence_transformers import (
+    SentenceTransformer,
+    util
+)
 
 
 from retrieval.retriever import HybridRetriever
 from retrieval.reranker import Reranker
 from retrieval.adaptive_retriever import AdaptiveRetriever
 
+
 from generation.qwen_generator import QwenGenerator
 
 
 
 
-# ==========================
-# Load Questions
-# ==========================
-
-
-with open(
-    "evaluation/test_questions.json",
-    "r",
-    encoding="utf-8"
-) as f:
-
-    questions = json.load(f)
+print("\nLoading AC-RAG...")
 
 
 
-
-# ==========================
-# Load AC-RAG
-# ==========================
-
-
-print(
-    "\nLoading AC-RAG..."
-)
+# =====================================================
+# Load Retrieval System
+# =====================================================
 
 
 retriever = HybridRetriever()
@@ -70,138 +63,344 @@ adaptive = AdaptiveRetriever(
 )
 
 
+
+# =====================================================
+# Load Qwen Generator
+# =====================================================
+
+
 generator = QwenGenerator()
 
 
 
+# =====================================================
+# Semantic Evaluation Model
+# =====================================================
 
-# ==========================
-# Evaluation
-# ==========================
+
+print("\nLoading evaluation model...")
 
 
-total_score = 0
+semantic_model = SentenceTransformer(
+    "BAAI/bge-small-en-v1.5"
+)
 
+
+
+
+# =====================================================
+# Test Questions
+# =====================================================
+
+
+questions = [
+
+
+{
+"question":
+"What is Retrieval Augmented Generation?",
+
+
+"keywords":[
+"retrieval",
+"external knowledge",
+"large language models",
+"hallucination"
+],
+
+
+"reference":
+"""
+Retrieval Augmented Generation (RAG) improves
+Large Language Models by retrieving relevant
+information from external knowledge sources.
+It reduces hallucination by grounding generated
+answers with retrieved documents.
+"""
+},
+
+
+
+{
+"question":
+"How does RAG reduce hallucination?",
+
+
+"keywords":[
+"external knowledge",
+"retrieved documents",
+"factual"
+],
+
+
+"reference":
+"""
+RAG reduces hallucination by retrieving relevant
+documents from external knowledge bases and
+using those documents as context to generate
+more accurate factual responses.
+"""
+},
+
+
+
+{
+"question":
+"What are the methods used to improve retrieval quality in RAG systems?",
+
+
+"keywords":[
+"query rewriting",
+"metadata",
+"reranking",
+"index"
+],
+
+
+"reference":
+"""
+Retrieval quality can be improved using query
+optimization, query rewriting, metadata,
+better indexing strategies, hybrid retrieval,
+and reranking.
+"""
+},
+
+
+
+{
+"question":
+"Explain Advanced RAG.",
+
+
+"keywords":[
+"pre-retrieval",
+"post-retrieval",
+"indexing"
+],
+
+
+"reference":
+"""
+Advanced RAG improves traditional RAG using
+pre-retrieval and post-retrieval strategies,
+better indexing techniques and reranking.
+"""
+},
+
+
+
+{
+"question":
+"What are the limitations of Large Language Models?",
+
+
+"keywords":[
+"hallucination",
+"outdated knowledge",
+"accuracy"
+],
+
+
+"reference":
+"""
+Large Language Models suffer from hallucination,
+outdated knowledge and factual accuracy problems,
+especially for knowledge-intensive tasks.
+"""
+}
+
+
+]
+
+
+
+
+keyword_scores = []
+
+semantic_scores = []
+
+
+
+# =====================================================
+# Evaluation Loop
+# =====================================================
 
 
 for item in questions:
 
 
-    query = item["question"]
+    question = item["question"]
 
 
-    keywords = [
-
-        k.lower()
-
-        for k in item["expected_keywords"]
-
-    ]
+    print("\n================================")
+    print("Question:")
+    print(question)
 
 
 
-    print(
-        "\nQuestion:",
-        query
-    )
+    # -----------------------------
+    # Retrieve Context
+    # -----------------------------
 
-
-
-    # Retrieve
 
     docs = adaptive.retrieve(
-        query
+        question
     )
 
 
 
-    context = ""
+    context_parts = []
 
 
 
     for doc in docs:
 
 
-        context += doc.get(
-            "text",
-            ""
-        )
+        if isinstance(doc, dict):
+
+            context_parts.append(
+                doc.get(
+                    "text",
+                    ""
+                )
+            )
+
+
+        else:
+
+            context_parts.append(
+                str(doc)
+            )
 
 
 
-        context += "\n"
+    context = "\n\n".join(
+        context_parts
+    )
 
 
 
-
-    # Generate answer
+    # -----------------------------
+    # Generate Answer
+    # -----------------------------
 
 
     answer = generator.generate(
-        query,
+        question,
         context
     )
 
 
 
-    answer_lower = answer.lower()
+    print("\nAnswer:")
+    print(
+        answer[:600]
+    )
 
+
+
+    # -----------------------------
+    # Keyword Coverage
+    # -----------------------------
 
 
     matched = 0
 
 
+    for key in item["keywords"]:
 
-    for keyword in keywords:
 
-
-        if keyword in answer_lower:
+        if key.lower() in answer.lower():
 
             matched += 1
 
 
 
-
-    score = (
+    keyword_score = (
         matched /
-        len(keywords)
+        len(item["keywords"])
     )
 
 
-
-    total_score += score
-
-
-
-    print(
-        "\nAnswer:"
+    keyword_scores.append(
+        keyword_score
     )
 
-
-    print(
-        answer[:500]
-    )
 
 
     print(
         "\nKeyword Coverage:",
         matched,
         "/",
-        len(keywords)
+        len(item["keywords"])
+    )
+
+
+
+    # -----------------------------
+    # Semantic Similarity
+    # -----------------------------
+
+
+    answer_embedding = semantic_model.encode(
+        answer,
+        convert_to_tensor=True
+    )
+
+
+    reference_embedding = semantic_model.encode(
+        item["reference"],
+        convert_to_tensor=True
+    )
+
+
+
+    similarity = util.cos_sim(
+        answer_embedding,
+        reference_embedding
+    ).item()
+
+
+
+    semantic_scores.append(
+        similarity
+    )
+
+
+
+    print(
+        "Semantic Similarity:",
+        round(similarity,3)
     )
 
 
 
 
-# ==========================
-# Final Result
-# ==========================
+
+# =====================================================
+# Final Score
+# =====================================================
 
 
-average_score = (
+avg_keyword = np.mean(
+    keyword_scores
+)
 
-    total_score /
-    len(questions)
+
+avg_semantic = np.mean(
+    semantic_scores
+)
+
+
+
+overall = (
+
+    avg_keyword * 0.3
+
+    +
+
+    avg_semantic * 0.7
 
 )
 
@@ -212,7 +411,6 @@ print(
 )
 
 
-
 print(
     "Questions:",
     len(questions)
@@ -220,9 +418,18 @@ print(
 
 
 print(
-    "Answer Coverage Score:",
-    round(
-        average_score,
-        3
-    )
+    "Average Keyword Coverage:",
+    round(avg_keyword,3)
+)
+
+
+print(
+    "Average Semantic Similarity:",
+    round(avg_semantic,3)
+)
+
+
+print(
+    "Overall Generation Score:",
+    round(overall,3)
 )

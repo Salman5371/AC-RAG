@@ -1,7 +1,7 @@
 # =====================================================
 # AC-RAG Adaptive Retriever
 # Adaptive Query Analysis + Hybrid Retrieval + Reranking
-# Final Stable Version
+# Balanced Generation Optimized Version
 # =====================================================
 
 
@@ -59,10 +59,8 @@ class AdaptiveRetriever:
     ):
 
 
-        words = query.split()
-
-
         complex_words = [
+
             "methods",
             "techniques",
             "explain",
@@ -75,6 +73,7 @@ class AdaptiveRetriever:
             "process",
             "everything",
             "detailed"
+
         ]
 
 
@@ -83,13 +82,13 @@ class AdaptiveRetriever:
 
         for word in complex_words:
 
-            if word.lower() in query.lower():
+            if word in query.lower():
 
                 score += 1
 
 
 
-        if len(words) > 10:
+        if len(query.split()) > 10:
 
             score += 1
 
@@ -100,9 +99,7 @@ class AdaptiveRetriever:
             return "Complex"
 
 
-        else:
-
-            return "Simple"
+        return "Simple"
 
 
 
@@ -124,13 +121,14 @@ class AdaptiveRetriever:
 
 
 
-        total = 0
+        total_length = 0
+
 
 
         for doc in docs:
 
 
-            if isinstance(doc,dict):
+            if isinstance(doc, dict):
 
                 text = doc.get(
                     "text",
@@ -144,20 +142,24 @@ class AdaptiveRetriever:
 
 
 
-            total += len(text)
+            total_length += len(text)
 
 
 
-        avg = total / len(docs)
+        avg_length = (
+            total_length /
+            len(docs)
+        )
+
 
 
         print(
             "Average document length:",
-            avg
+            avg_length
         )
 
 
-        return avg > 200
+        return avg_length > 200
 
 
 
@@ -174,9 +176,11 @@ class AdaptiveRetriever:
 
 
         new_query = (
-            "Provide detailed academic information about: "
+
+            "Provide academic explanation with important concepts about: "
             +
             query
+
         )
 
 
@@ -192,7 +196,7 @@ class AdaptiveRetriever:
 
 
     # =====================================================
-    # Main Adaptive Retrieval Pipeline
+    # Adaptive Retrieval Pipeline
     # =====================================================
 
 
@@ -214,10 +218,7 @@ class AdaptiveRetriever:
 
 
 
-        # -------------------------
-        # Analyze Query
-        # -------------------------
-
+        # Query analysis
 
         query_type = self.analyze_query(
             query
@@ -231,30 +232,27 @@ class AdaptiveRetriever:
 
 
 
-        # -------------------------
-        # Dynamic Retrieval Size
-        # -------------------------
-
+        # Dynamic retrieval size
 
         if query_type == "Complex":
 
-            top_k = 40
+            top_k = 70
+
 
         else:
 
-            top_k = 20
+            top_k = 40
 
 
 
-        # -------------------------
-        # First Retrieval
-        # -------------------------
 
+        # Initial retrieval
 
         docs = self.retriever.search(
             query,
             top_k=top_k
         )
+
 
 
         print(
@@ -264,21 +262,13 @@ class AdaptiveRetriever:
 
 
 
-        # -------------------------
-        # Quality Check
-        # -------------------------
+        # Quality checking
 
-
-        quality = self.check_quality(
-            docs
-        )
-
-
-        if not quality:
+        if not self.check_quality(docs):
 
 
             print(
-                "Low quality detected, reformulating query..."
+                "Low quality retrieval detected..."
             )
 
 
@@ -294,10 +284,7 @@ class AdaptiveRetriever:
 
 
 
-        # -------------------------
         # Reranking
-        # -------------------------
-
 
         print(
             "\nReranking documents..."
@@ -311,20 +298,100 @@ class AdaptiveRetriever:
 
 
 
-        # -------------------------
-        # Stable Selection
-        # -------------------------
+        # =================================================
+        # Adaptive Score Filtering
+        # =================================================
 
 
-        if len(ranked_docs) >= 5:
+        scores = []
 
 
-            final_docs = ranked_docs[:5]
+        for item in ranked_docs:
+
+
+            if isinstance(item, dict):
+
+                scores.append(
+                    item.get(
+                        "reranker_score",
+                        0
+                    )
+                )
+
+
+
+        selected_docs = []
+
+
+
+        if scores:
+
+
+            max_score = max(scores)
+
+
+            threshold = max_score * 0.25
+
+
+
+            print(
+                "Max reranker score:",
+                max_score
+            )
+
+
+            print(
+                "Adaptive threshold:",
+                threshold
+            )
+
+
+
+            for item in ranked_docs:
+
+
+                if item.get(
+                    "reranker_score",
+                    0
+                ) >= threshold:
+
+
+                    selected_docs.append(item)
+
 
 
         else:
 
-            final_docs = ranked_docs
+
+            selected_docs = ranked_docs[:]
+
+
+
+
+        # =================================================
+        # Final Context Selection
+        # =================================================
+
+
+        if query_type == "Simple":
+
+
+            final_docs = selected_docs[:4]
+
+
+        else:
+
+
+            final_docs = selected_docs[:8]
+
+
+
+        # Safety fallback
+
+        if len(final_docs) < 2:
+
+
+            final_docs = ranked_docs[:4]
 
 
 
@@ -332,6 +399,7 @@ class AdaptiveRetriever:
             "Final selected documents:",
             len(final_docs)
         )
+
 
 
         return final_docs

@@ -15,10 +15,11 @@ ENV/
 
 *.py[cod]
 *$py.class
-__pycache__/
 
+__pycache__/
 .pytest_cache/
 .mypy_cache/
+
 .coverage
 htmlcov/
 
@@ -43,7 +44,7 @@ htmlcov/
 # Large AI Models
 # ==========================
 
-# HuggingFace models
+# HuggingFace downloaded models
 models/
 
 # Model weights
@@ -53,41 +54,71 @@ models/
 *.ckpt
 *.safetensors
 
-# Tensorflow/Pytorch checkpoints
+
+# Training checkpoints
 checkpoint/
 checkpoints/
+
+
+# ==========================
+# HuggingFace Cache
+# ==========================
+
+.cache/
+huggingface/
+huggingface_cache/
+.huggingface/
 
 
 # ==========================
 # Vector Database
 # ==========================
 
-# FAISS index
-*.index
-
-# Embedding files
+# Ignore old/generated embedding folders
 embeddings/
 embedding/
 vectorstore/
 
-# Pickle databases
-*.pkl
-*.pickle
+
+# Ignore temporary vector cache
+bm25.pkl
+retriever.pkl
+reranker_cache/
+
+
+# IMPORTANT:
+# Keep AC-RAG production embeddings
+# for reproducibility
+
+!embeddings_v2/
+!embeddings_v2/faiss.index
+!embeddings_v2/chunks.pkl
+
 
 
 # ==========================
-# Dataset / Documents
+# Dataset
 # ==========================
 
-# Ignore raw private datasets
+# Private datasets
 data/
 
-# Ignore temporary documents
+# Temporary files
+*.csv
+*.jsonl
+
+
+# ==========================
+# Documents
+# ==========================
+
+# Ignore personal documents
 *.docx
 *.xlsx
 
-# Ignore downloaded papers if needed
+# Keep project documents folder
 # documents/
+
 
 
 # ==========================
@@ -98,14 +129,14 @@ logs/
 *.log
 
 
+
 # ==========================
-# Cache Files
+# Evaluation Outputs
 # ==========================
 
-.cache/
-.cache/*
-huggingface_cache/
-.huggingface/
+outputs/
+results/
+reports/
 
 
 # ==========================
@@ -115,8 +146,8 @@ huggingface_cache/
 .vscode/
 .idea/
 
-# VS Code temporary files
 *.code-workspace
+
 
 
 # ==========================
@@ -131,6 +162,7 @@ Desktop.ini
 .DS_Store
 
 
+
 # ==========================
 # Temporary Files
 # ==========================
@@ -139,6 +171,7 @@ Desktop.ini
 *.temp
 *.swp
 *.bak
+
 
 
 # ==========================
@@ -157,30 +190,29 @@ build/
 *.key
 *.pem
 credentials.json
+secrets.json
 
-
-# ==========================
-# RAG Generated Files
-# ==========================
-
-faiss.index
-chunks.pkl
-bm25.pkl
-retriever.pkl
-reranker_cache/
 
 
 # ==========================
-# Local Testing Output
+# Python Packaging
 # ==========================
 
-outputs/
-results/
-reports/
+*.whl
+pip-wheel-metadata/
+
 
 
 # ==========================
-# Keep Important Empty Folders
+# Streamlit
+# ==========================
+
+.streamlit/
+
+
+
+# ==========================
+# Keep Empty Folders
 # ==========================
 
 !.gitkeep
