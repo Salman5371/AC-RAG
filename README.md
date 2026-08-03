@@ -4,6 +4,12 @@
 
 ## Adaptive Self-Correcting Retrieval-Augmented Generation Framework
 
+<div align="center">
+
+<img src="assets/ac-rag-architecture.png" width="900">
+
+</div>
+
 A Research-Oriented RAG Framework Combining  
 Hybrid Retrieval, Adaptive Query Analysis, Neural Reranking, and LLM Generation
 
