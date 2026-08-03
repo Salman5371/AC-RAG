@@ -1,166 +1,389 @@
+<div align="center">
 
-# AC-RAG
-## Adaptive Self-Correcting Retrieval-Augmented Generation System
+# 🧠 AC-RAG
 
-AC-RAG is a research-oriented Retrieval-Augmented Generation (RAG) framework designed to improve Large Language Model (LLM) reliability by combining hybrid retrieval, reranking, adaptive retrieval strategies, and grounded generation.
+## Adaptive Self-Correcting Retrieval-Augmented Generation Framework
 
-The system addresses major LLM limitations such as hallucination, outdated knowledge, and lack of domain-specific information by retrieving relevant external knowledge and generating evidence-based responses.
+A Research-Oriented RAG Framework Combining  
+Hybrid Retrieval, Adaptive Query Analysis, Neural Reranking, and LLM Generation
+
+
+![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
+![PyTorch](https://img.shields.io/badge/PyTorch-Deep_Learning-red.svg)
+![FAISS](https://img.shields.io/badge/FAISS-Vector_Search-green.svg)
+![HuggingFace](https://img.shields.io/badge/HuggingFace-Transformers-yellow.svg)
+![Qwen](https://img.shields.io/badge/Qwen2.5-LLM-purple.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
+
+</div>
+
+
+# 📌 Overview
+
+**AC-RAG (Adaptive Self-Correcting Retrieval-Augmented Generation)** is a research-oriented Retrieval-Augmented Generation framework designed to improve the reliability, relevance, and accuracy of Large Language Model (LLM) responses.
+
+Traditional RAG systems often suffer from irrelevant retrieval, insufficient context, and inaccurate generation. AC-RAG addresses these challenges by introducing:
+
+- Adaptive query complexity analysis
+- Hybrid retrieval mechanism
+- Neural document reranking
+- Dynamic context selection
+- Context-grounded LLM generation
+- Automated retrieval and generation evaluation
+
+
+The framework integrates dense and sparse retrieval techniques with adaptive decision-making to provide high-quality knowledge-grounded responses.
+
 
 ---
 
-## 🚀 System Architecture
+# 🚀 Key Features
+
+
+## 🔍 Hybrid Retrieval
+
+AC-RAG combines two retrieval approaches:
+
+### Dense Retrieval
+
+Using:
+
+```
+FAISS + BAAI/bge-small-en-v1.5
+```
+
+for semantic similarity search.
+
+
+### Sparse Retrieval
+
+Using:
+
+```
+BM25
+```
+
+for keyword-based matching.
+
+
+The combination improves both semantic understanding and exact term retrieval.
+
+
+---
+
+# 🧩 Adaptive Query Analysis
+
+AC-RAG automatically analyzes user queries and adjusts retrieval depth.
+
+
+Example:
+
+```
+Simple Query
+      |
+      ↓
+Light Retrieval
+
+
+Complex Query
+      |
+      ↓
+Deep Retrieval
+```
+
+
+Complex queries receive more candidate documents for improved coverage.
+
+
+---
+
+# 🎯 Neural Reranking
+
+Retrieved documents are refined using:
+
+```
+BAAI/bge-reranker-base
+```
+
+
+The reranker:
+
+- Evaluates query-document relevance
+- Removes noisy contexts
+- Improves final context quality
+
+
+---
+
+# 🤖 Context-Grounded Generation
+
+
+Generator:
+
+```
+Qwen/Qwen2.5-3B-Instruct
+```
+
+
+The model generates answers using retrieved evidence instead of relying only on internal knowledge.
+
+
+Benefits:
+
+- Reduced hallucination
+- Better factual consistency
+- Domain-specific responses
+
+
+---
+
+# 🏗️ System Architecture
+
+
+```
+                    User Query
+                         |
+                         ↓
+
+              Adaptive Query Analyzer
+
+                         |
+          --------------------------------
+          |                              |
+     Simple Query                 Complex Query
+          |                              |
+          --------------------------------
+
+                         |
+                         ↓
+
+              Hybrid Retrieval Layer
+
+          -------------------------------
+          |                             |
+       FAISS                         BM25
+   Semantic Search              Keyword Search
+
+          -------------------------------
+                         |
+                         ↓
+
+              Candidate Documents
+
+                         |
+                         ↓
+
+              Cross Encoder Reranker
+
+                         |
+                         ↓
+
+             Adaptive Context Selection
+
+                         |
+                         ↓
+
+              Qwen2.5 Generator
+
+                         |
+                         ↓
+
+                 Final Response
+
+                         |
+                         ↓
+
+               Evaluation Module
 
 ```
 
-User Query
-|
-↓
-Query Complexity Analysis
-|
-↓
+
+---
+
+# 🔄 AC-RAG Workflow
+
+
+```
+Documents
+    |
+    ↓
+Text Chunking
+    |
+    ↓
+Embedding Generation
+    |
+    ↓
+FAISS Index Creation
+    |
+    ↓
 Hybrid Retrieval
-(FAISS + BM25)
-|
-↓
-Candidate Documents
-|
-↓
-Cross Encoder Reranking
-|
-↓
-Adaptive Evidence Selection
-|
-↓
-Qwen2.5 Generation
-|
-↓
-Answer + Source Evidence
-
+    |
+    ↓
+Adaptive Query Processing
+    |
+    ↓
+Document Reranking
+    |
+    ↓
+Context Selection
+    |
+    ↓
+LLM Generation
+    |
+    ↓
+Evaluation
 ```
+
 
 ---
 
-# ✨ Key Features
-
-### 🔹 Hybrid Retrieval
-Combines:
-
-- **FAISS Vector Search**
-  - Semantic understanding using embeddings
-  - Handles paraphrased queries
-
-- **BM25 Keyword Search**
-  - Captures exact technical terms
-  - Improves keyword-based retrieval
+# 🧠 Core Components
 
 
-### 🔹 Semantic Embedding
+## 1. Document Processing
 
-Embedding Model:
+Functions:
 
-```
-
-BAAI/bge-small-en-v1.5
-
-```
-
-Vector database:
-
-```
-
-FAISS
-
-```
+- Document loading
+- Text chunking
+- Embedding generation
+- Vector indexing
 
 
-### 🔹 Cross Encoder Reranking
+---
+
+## 2. Embedding Model
+
 
 Model:
 
 ```
+BAAI/bge-small-en-v1.5
+```
 
+
+Purpose:
+
+- Semantic representation
+- Vector similarity search
+
+
+---
+
+## 3. Hybrid Retriever
+
+
+Components:
+
+| Method | Purpose |
+|-|-|
+| FAISS | Semantic retrieval |
+| BM25 | Keyword retrieval |
+| Fusion | Combined ranking |
+
+
+---
+
+## 4. Adaptive Retrieval Module
+
+
+The module determines query complexity:
+
+### Simple Queries
+
+Example:
+
+```
+What is RAG?
+```
+
+
+### Complex Queries
+
+Example:
+
+```
+What are the methods used to improve retrieval quality in RAG systems?
+```
+
+
+Complex queries retrieve deeper context.
+
+
+---
+
+## 5. Reranking Module
+
+
+Model:
+
+```
 BAAI/bge-reranker-base
-
 ```
 
-The reranker evaluates query-document relevance and prioritizes the most useful evidence.
+
+Improves:
+
+- Document relevance
+- Context quality
+- Retrieval precision
 
 
-### 🔹 Adaptive Retrieval
+---
 
-AC-RAG dynamically analyzes query complexity.
-
-Simple query:
-
-```
-
-What is Retrieval Augmented Generation?
-
-```
-
-→ Retrieves focused evidence
+## 6. Generation Module
 
 
-Complex query:
+Model:
 
 ```
-
-What methods improve retrieval quality in RAG systems?
-
+Qwen2.5-3B-Instruct
 ```
 
-→ Retrieves broader evidence coverage
 
+Generates final answers from retrieved knowledge.
 
-### 🔹 LLM Generation
-
-Final answers are generated using:
-
-```
-
-Qwen2.5
-
-```
-
-The model receives retrieved evidence and produces grounded responses.
 
 ---
 
 # 📂 Project Structure
 
-```
 
+```
 AC-RAG/
 
+│
+├── embeddings_v2/
+│   ├── faiss.index
+│   └── chunks.pkl
+│
 ├── retrieval/
 │   ├── retriever.py
-│   ├── reranker.py
 │   ├── adaptive_retriever.py
+│   ├── reranker.py
 │   └── test_adaptive.py
 │
 ├── generation/
 │   ├── qwen_generator.py
-│   └── rag_answer.py
+│   ├── rag_answer.py
+│   └── test_qwen.py
 │
 ├── evaluation/
-│   ├── test_questions.json
 │   ├── retrieval_metrics.py
-│   └── generation_metrics.py
+│   ├── generation_metrics.py
+│   └── test_questions.json
 │
-├── embeddings/
-│   ├── faiss.index
-│   └── chunks.pkl
-│
-├── models/
-├── data/
 ├── requirements.txt
-└── README.md
+├── README.md
+└── .gitignore
 
-````
+```
+
 
 ---
 
 # ⚙️ Installation
+
 
 Clone repository:
 
@@ -168,13 +391,15 @@ Clone repository:
 git clone https://github.com/yourusername/AC-RAG.git
 
 cd AC-RAG
-````
+```
 
-Create environment:
+
+Create virtual environment:
 
 ```bash
 python -m venv venv
 ```
+
 
 Activate:
 
@@ -184,119 +409,145 @@ Windows:
 venv\Scripts\activate
 ```
 
+
 Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
+
 ---
 
-# ▶️ Run System
+# ▶️ Usage
 
-### Test Adaptive Retrieval
+
+## Test Retrieval
+
 
 ```bash
 python retrieval/test_adaptive.py
 ```
 
-Example:
 
-```
-Enter question:
-What is Retrieval Augmented Generation?
-```
+## Generate Answers
 
-Output includes:
-
-* Retrieved documents
-* FAISS score
-* Hybrid score
-* Reranker score
-
----
-
-### Generate Final Answer
 
 ```bash
 python generation/rag_answer.py
 ```
 
-Output:
 
+## Retrieval Evaluation
+
+
+```bash
+python evaluation/retrieval_metrics.py
 ```
-========== FINAL ANSWER ==========
-
-Generated response...
 
 
-========== SOURCES ==========
+## Generation Evaluation
 
-Chunk ID
-Reranker Score
-Evidence Context
+
+```bash
+python evaluation/generation_metrics.py
 ```
+
 
 ---
 
-# 📊 Current Evaluation
+# 📊 Evaluation Results
+
 
 ## Retrieval Performance
 
-```
-Precision@K : 0.617
 
-Hit Rate    : 0.8
-```
+| Metric | Score |
+|-|-:|
+| Precision@K | 0.617 |
+| Hit Rate | 0.800 |
+
+
+---
 
 ## Generation Performance
 
-```
-Answer Coverage Score : 0.667
-```
+
+| Metric | Score |
+|-|-:|
+| Keyword Coverage | 0.867 |
+| Semantic Similarity | 0.854 |
+| Overall Generation Score | 0.858 |
+
 
 ---
 
-# 🛠️ Technologies
+# 🤖 Models Used
 
-| Component    | Technology        |
-| ------------ | ----------------- |
-| Language     | Python            |
-| Retrieval    | FAISS + BM25      |
-| Embedding    | BAAI BGE          |
-| Reranking    | BGE Cross Encoder |
-| LLM          | Qwen2.5           |
-| Architecture | RAG               |
+
+| Component | Model |
+|-|-|
+| Embedding | BAAI/bge-small-en-v1.5 |
+| Reranker | BAAI/bge-reranker-base |
+| Generator | Qwen2.5-3B-Instruct |
+
 
 ---
 
-# 🔬 Research Contribution
+# 💻 Hardware Configuration
 
-AC-RAG introduces:
 
-* Hybrid semantic + keyword retrieval
-* Adaptive query complexity analysis
-* Cross-encoder based evidence ranking
-* Source-aware answer generation
+Test Environment:
 
-The framework improves retrieval reliability and reduces irrelevant context before LLM generation.
+
+| Component | Specification |
+|-|-|
+| GPU | NVIDIA RTX 4050 Laptop GPU |
+| RAM | 16 GB |
+| Framework | PyTorch + HuggingFace |
+
 
 ---
 
 # 🔮 Future Improvements
 
-* RAGAS evaluation
-* Semantic answer evaluation
-* Metadata-aware retrieval
-* Query expansion
-* Better chunk optimization
-* Hallucination detection
+
+Future development directions:
+
+- Larger benchmark evaluation dataset
+- Automatic self-correction feedback loop
+- Citation-aware generation
+- Multi-document reasoning
+- Web-based interactive interface
+- Domain-specific adaptation
+
 
 ---
 
-## License
-
-Research and educational use.
+# 📚 Technologies
 
 
-## Author : Md Salman Farshi.
+- Python
+- PyTorch
+- HuggingFace Transformers
+- Sentence Transformers
+- FAISS
+- BM25
+- Cross Encoder
+- Qwen LLM
+
+
+---
+
+# 📜 License
+
+
+MIT License
+
+
+---
+
+# ⭐ Acknowledgement
+
+
+This project explores adaptive retrieval strategies for improving Retrieval-Augmented Generation systems and advancing reliable LLM-based applications.
