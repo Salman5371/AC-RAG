@@ -1,12 +1,18 @@
 # =====================================================
-# AC-RAG Result Logger
-# Save Experiment Results
+# AC-RAG Result Logger v2
+#
+# Features:
+# - Automatic experiment run tracking
+# - No overwrite
+# - CSV + JSON + TXT saving
+# - Research experiment friendly
 # =====================================================
 
 
+import os
 import json
 import csv
-import os
+from datetime import datetime
 
 
 
@@ -18,92 +24,180 @@ class ResultLogger:
     def __init__(self):
 
 
-        self.result_dir = "results"
+        print(
+            "Initializing Result Logger..."
+        )
+
+
+        self.base_folder = (
+
+            "evaluation/results"
+
+        )
 
 
         os.makedirs(
 
-            self.result_dir,
+            self.base_folder,
 
             exist_ok=True
 
         )
 
 
-        self.json_file = os.path.join(
+        self.run_folder = self.create_run_folder()
 
-            self.result_dir,
 
-            "benchmark_results.json"
+
+        self.results = []
+
+
+
+        print(
+
+            "Saving results to:",
+
+            self.run_folder
 
         )
 
 
-        self.csv_file = os.path.join(
 
-            self.result_dir,
 
-            "benchmark_results.csv"
+
+    # =====================================================
+    # Create New Run Folder
+    # =====================================================
+
+
+    def create_run_folder(self):
+
+
+        existing = [
+
+            folder
+
+            for folder in os.listdir(
+
+                self.base_folder
+
+            )
+
+            if folder.startswith("run_")
+
+        ]
+
+
+        run_numbers = []
+
+
+        for folder in existing:
+
+
+            try:
+
+                number = int(
+
+                    folder.split("_")[1]
+
+                )
+
+                run_numbers.append(number)
+
+
+            except:
+
+                pass
+
+
+
+        if run_numbers:
+
+
+            next_run = max(run_numbers) + 1
+
+
+        else:
+
+            next_run = 1
+
+
+
+        folder_name = (
+
+            f"run_{next_run:03d}"
 
         )
 
 
+        path = os.path.join(
+
+            self.base_folder,
+
+            folder_name
+
+        )
 
 
+        os.makedirs(
 
-    def save(
+            path,
 
-        self,
+            exist_ok=True
 
-        result
-
-    ):
-
+        )
 
 
-        # ==========================
-        # JSON Save
-        # ==========================
-
-
-        data = []
-
-
-
-        if os.path.exists(
-
-            self.json_file
-
-        ):
-
-
-            with open(
-
-                self.json_file,
-
-                "r",
-
-                encoding="utf-8"
-
-            ) as f:
-
-
-                data = json.load(f)
+        return path
 
 
 
 
-        data.append(
+
+    # =====================================================
+    # Save Single Result
+    # =====================================================
+
+
+    def save(self, result):
+
+
+        self.results.append(
 
             result
 
         )
 
 
+        self.save_json()
+
+        self.save_csv()
+
+        self.save_summary()
+
+
+
+
+    # =====================================================
+    # Save JSON
+    # =====================================================
+
+
+    def save_json(self):
+
+
+        path = os.path.join(
+
+            self.run_folder,
+
+            "benchmark_results.json"
+
+        )
+
 
         with open(
 
-            self.json_file,
+            path,
 
             "w",
 
@@ -114,7 +208,7 @@ class ResultLogger:
 
             json.dump(
 
-                data,
+                self.results,
 
                 f,
 
@@ -127,24 +221,39 @@ class ResultLogger:
 
 
 
-        # ==========================
-        # CSV Save
-        # ==========================
+
+    # =====================================================
+    # Save CSV
+    # =====================================================
 
 
-        file_exists = os.path.exists(
+    def save_csv(self):
 
-            self.csv_file
+
+        path = os.path.join(
+
+            self.run_folder,
+
+            "benchmark_results.csv"
 
         )
+
+
+        if not self.results:
+
+            return
+
+
+
+        keys = self.results[0].keys()
 
 
 
         with open(
 
-            self.csv_file,
+            path,
 
-            "a",
+            "w",
 
             newline="",
 
@@ -153,108 +262,192 @@ class ResultLogger:
         ) as f:
 
 
-
             writer = csv.DictWriter(
 
                 f,
 
-                fieldnames=[
+                fieldnames=keys
 
-                    "question",
+            )
 
-                    "answer",
 
-                    "faithfulness_score",
+            writer.writeheader()
 
-                    "supported",
 
-                    "no_information"
+            writer.writerows(
 
-                ]
+                self.results
 
             )
 
 
 
-            if not file_exists:
 
 
-                writer.writeheader()
+    # =====================================================
+    # Save Summary
+    # =====================================================
 
 
-
-            writer.writerow(
-
-                {
+    def save_summary(self):
 
 
-                    "question":
+        path = os.path.join(
 
-                        result.get(
+            self.run_folder,
 
-                            "question",
-
-                            ""
-
-                        ),
-
-
-
-                    "answer":
-
-                        result.get(
-
-                            "answer",
-
-                            ""
-
-                        ),
-
-
-
-                    "faithfulness_score":
-
-                        result.get(
-
-                            "faithfulness_score",
-
-                            0
-
-                        ),
-
-
-
-                    "supported":
-
-                        result.get(
-
-                            "supported",
-
-                            False
-
-                        ),
-
-
-
-                    "no_information":
-
-                        result.get(
-
-                            "no_information",
-
-                            False
-
-                        )
-
-
-                }
-
-            )
-
-
-
-        print(
-
-            "\nResult saved successfully."
+            "summary_report.txt"
 
         )
+
+
+        total = len(
+
+            self.results
+
+        )
+
+
+        supported = sum(
+
+            1
+
+            for r in self.results
+
+            if r.get(
+
+                "supported",
+
+                False
+
+            )
+
+        )
+
+
+        no_information = sum(
+
+            1
+
+            for r in self.results
+
+            if r.get(
+
+                "no_information",
+
+                False
+
+            )
+
+        )
+
+
+
+        faithfulness = []
+
+
+        for r in self.results:
+
+
+            score = r.get(
+
+                "faithfulness_score",
+
+                None
+
+            )
+
+
+            if score is not None:
+
+                faithfulness.append(
+
+                    score
+
+                )
+
+
+
+        avg_faithfulness = (
+
+            sum(faithfulness)
+
+            /
+
+            len(faithfulness)
+
+            if faithfulness
+
+            else 0
+
+        )
+
+
+
+
+        with open(
+
+            path,
+
+            "w",
+
+            encoding="utf-8"
+
+        ) as f:
+
+
+
+            f.write(
+
+                "AC-RAG Benchmark Report\n"
+
+            )
+
+
+            f.write(
+
+                "=======================\n\n"
+
+            )
+
+
+            f.write(
+
+                f"Run Folder: {self.run_folder}\n\n"
+
+            )
+
+
+            f.write(
+
+                f"Total Questions: {total}\n"
+
+            )
+
+
+            f.write(
+
+                f"Supported Answers: {supported}\n"
+
+            )
+
+
+            f.write(
+
+                f"No Information Responses: {no_information}\n"
+
+            )
+
+
+            f.write(
+
+                f"Average Faithfulness: {avg_faithfulness:.4f}\n"
+
+            )
+
+
+            f.write(
+
+                f"Completed Time: {datetime.now()}\n"
+
+            )

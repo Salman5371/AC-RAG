@@ -1,62 +1,91 @@
 # =====================================================
-# AC-RAG Output Cleaner v2
-# Remove Prompt Leakage and Model Identity Leakage
+# AC-RAG Output Cleaner v5
+# Final Generation Cleanup
 # =====================================================
-
 
 
 class OutputCleaner:
 
 
-
     def __init__(self):
 
-        print(
-            "Loading Output Cleaner..."
-        )
+        print("Loading Output Cleaner...")
+
+
+
+    def clean(self, text):
+
+
+        if not text:
+
+            return ""
+
+
+
+        text = text.strip()
+
+
+
+        lower_text = text.lower()
+
+
+
+        # =========================================
+        # Unknown Answer Hard Stop
+        # =========================================
+
+
+        unknown_patterns = [
+
+            "no relevant information was found",
+
+            "no relevant information available",
+
+            "insufficient evidence found"
+
+        ]
+
+
+
+        for pattern in unknown_patterns:
+
+
+            if pattern in lower_text:
+
+
+                return "No relevant information was found."
 
 
 
 
-    def clean(
 
-        self,
-
-        text
-
-    ):
+        # =========================================
+        # Remove instruction leakage blocks
+        # =========================================
 
 
-        remove_patterns = [
+        leakage_patterns = [
 
-            # Prompt leakage
+            "Directly answering without mentioning any irrelevant information.",
 
-            "Answer:",
+            "Directly addressing the question while adhering strictly to provided guidelines.",
 
-            "Response:",
+            "Response should fit within 2 short paragraphs maximum.",
 
-            "Context:",
+            "To generate a concise answer based solely on the provided information.",
 
-            "Evidence:",
+            "Based solely on the provided information.",
 
+            "Based solely on provided information.",
 
-            # Instruction leakage
+            "According to given information.",
 
-            "provided context",
-
-            "provided evidence",
-
-            "using only the provided evidence",
+            "Your request cannot be answered based solely on the provided information.",
 
             "Answer the question using ONLY the provided evidence.",
 
+            "using only the provided evidence",
 
-            # Wrong fallback phrase
-
-            "Insufficient evidence found.",
-
-
-            # Model identity leakage
 
             "AC-RAG",
 
@@ -68,8 +97,7 @@ class OutputCleaner:
 
 
 
-        for pattern in remove_patterns:
-
+        for pattern in leakage_patterns:
 
 
             text = text.replace(
@@ -82,7 +110,43 @@ class OutputCleaner:
 
 
 
-        # Remove extra spaces
+
+
+        # =========================================
+        # Remove duplicated instruction sentences
+        # =========================================
+
+
+        bad_start_words = [
+
+            "Instructions:",
+
+            "Rules:",
+
+            "Answering guidelines:",
+
+            "Generation rules:"
+
+        ]
+
+
+
+        for word in bad_start_words:
+
+
+            if word in text:
+
+
+                text = text.split(word)[0]
+
+
+
+
+
+        # =========================================
+        # Clean spacing
+        # =========================================
+
 
         text = " ".join(
 
@@ -92,31 +156,4 @@ class OutputCleaner:
 
 
 
-        # Remove spaces before punctuation
-
-        text = text.replace(
-
-            " .",
-
-            "."
-
-        )
-
-
-        text = text.replace(
-
-            " ,",
-
-            ","
-
-        )
-
-
-
-        # Final cleanup
-
-        text = text.strip()
-
-
-
-        return text
+        return text.strip()

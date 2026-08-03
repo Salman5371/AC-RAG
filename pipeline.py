@@ -1,10 +1,11 @@
 # =====================================================
-# AC-RAG Main Pipeline v4
+# AC-RAG Main Pipeline v5
 # Adaptive Self-Correcting Retrieval-Augmented Generation
 #
 # Features:
 # - Query Decomposition
 # - Adaptive Hybrid Retrieval
+# - Evidence Gate
 # - Qwen Generation
 # - Answer Verification
 # - Self Correction
@@ -12,27 +13,18 @@
 # =====================================================
 
 
-
 from retrieval.retriever import HybridRetriever
-
-
 from retrieval.adaptive_retriever import AdaptiveRetriever
-
 
 from generation.qwen_generator import QwenGenerator
 
-
 from verification.answer_verifier import AnswerVerifier
-
 
 from correction.self_corrector import SelfCorrector
 
-
 from query.query_decomposer import QueryDecomposer
 
-
 from evaluation.result_logger import ResultLogger
-
 
 
 
@@ -45,9 +37,7 @@ class ACRAGPipeline:
 
 
         print(
-
             "\nInitializing AC-RAG System..."
-
         )
 
 
@@ -67,7 +57,6 @@ class ACRAGPipeline:
 
 
         self.base_retriever = HybridRetriever()
-
 
 
         self.retriever = AdaptiveRetriever(
@@ -114,7 +103,7 @@ class ACRAGPipeline:
 
 
         # ==============================
-        # Result Logger
+        # Logger
         # ==============================
 
 
@@ -158,6 +147,8 @@ class ACRAGPipeline:
 
         all_documents = []
 
+        context_status = []
+
 
 
         print(
@@ -165,6 +156,7 @@ class ACRAGPipeline:
             "\n========== QUERY RETRIEVAL =========="
 
         )
+
 
 
 
@@ -198,8 +190,28 @@ class ACRAGPipeline:
 
 
 
+            # collect evidence status
 
-        # Remove duplicates
+            if hasattr(
+
+                self.retriever,
+
+                "last_context_status"
+
+            ):
+
+
+                context_status.append(
+
+                    self.retriever.last_context_status
+
+                )
+
+
+
+
+
+        # Remove duplicate documents
 
 
         unique_docs = {}
@@ -228,6 +240,7 @@ class ACRAGPipeline:
 
 
 
+
         documents = list(
 
             unique_docs.values()
@@ -246,7 +259,39 @@ class ACRAGPipeline:
 
 
 
-        return documents
+
+        # Final evidence decision
+
+
+        context_valid = True
+
+
+
+        if context_status:
+
+
+            context_valid = all(
+
+                context_status
+
+            )
+
+
+
+
+        return {
+
+
+            "documents":
+
+                documents,
+
+
+            "context_valid":
+
+                context_valid
+
+        }
 
 
 
@@ -269,7 +314,13 @@ class ACRAGPipeline:
 
 
 
-        context = "\n\n".join(
+        if not documents:
+
+            return ""
+
+
+
+        return "\n\n".join(
 
             [
 
@@ -280,10 +331,6 @@ class ACRAGPipeline:
             ]
 
         )
-
-
-
-        return context
 
 
 
@@ -335,16 +382,26 @@ class ACRAGPipeline:
 
 
 
-        # ------------------------------
+
+        # ==============================
         # Retrieval
-        # ------------------------------
+        # ==============================
 
 
-        documents = self.retrieve_multi_query(
+
+        retrieval_result = self.retrieve_multi_query(
 
             question
 
         )
+
+
+
+        documents = retrieval_result["documents"]
+
+
+
+        context_valid = retrieval_result["context_valid"]
 
 
 
@@ -356,9 +413,116 @@ class ACRAGPipeline:
 
 
 
-        # ------------------------------
+
+
+        # ==============================
+        # Evidence Gate
+        # ==============================
+
+
+
+        if not context_valid:
+
+
+
+            answer = (
+
+                "No relevant information was found."
+
+            )
+
+
+
+            print(
+
+                "\nEvidence insufficient."
+
+            )
+
+
+            print(
+
+                "\nGenerated Answer:"
+
+            )
+
+
+            print(
+
+                answer
+
+            )
+
+
+
+            verification = {
+
+
+                "faithfulness_score":
+
+                    1.0,
+
+
+                "supported":
+
+                    True,
+
+
+                "no_information":
+
+                    True
+
+            }
+
+
+
+            self.logger.save(
+
+                {
+
+
+                    "question":
+
+                        question,
+
+
+                    "answer":
+
+                        answer,
+
+
+                    "faithfulness_score":
+
+                        1.0,
+
+
+                    "supported":
+
+                        True,
+
+
+                    "no_information":
+
+                        True
+
+                }
+
+            )
+
+
+
+            return answer
+
+
+
+
+
+
+
+        # ==============================
         # Generation
-        # ------------------------------
+        # ==============================
+
 
 
         answer = self.generator.generate(
@@ -386,9 +550,13 @@ class ACRAGPipeline:
 
 
 
-        # ------------------------------
+
+
+
+        # ==============================
         # Verification
-        # ------------------------------
+        # ==============================
+
 
 
         verification = self.verifier.verify(
@@ -424,9 +592,13 @@ class ACRAGPipeline:
 
 
 
-        # ------------------------------
+
+
+
+        # ==============================
         # Self Correction
-        # ------------------------------
+        # ==============================
+
 
 
         if not verification.get(
@@ -478,9 +650,6 @@ class ACRAGPipeline:
 
 
 
-            # Final verification after correction
-
-
             final_verification = self.verifier.verify(
 
                 answer,
@@ -523,9 +692,13 @@ class ACRAGPipeline:
 
 
 
-        # =================================================
-        # SAVE RESULT
-        # =================================================
+
+
+
+        # ==============================
+        # Save Result
+        # ==============================
+
 
 
         self.logger.save(
@@ -575,7 +748,6 @@ class ACRAGPipeline:
 
                     )
 
-
             }
 
         )
@@ -589,9 +761,8 @@ class ACRAGPipeline:
 
 
 
-
 # =====================================================
-# Run AC-RAG
+# Single Query Mode
 # =====================================================
 
 

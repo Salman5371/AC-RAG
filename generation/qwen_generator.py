@@ -1,6 +1,13 @@
 # =====================================================
-# AC-RAG Qwen Generator v4
-# Clean Academic Generation
+# AC-RAG Qwen Generator v7.2
+# Evidence-Grounded Academic Generation
+#
+# Improvements:
+# - Hallucination control
+# - Better yes/no reasoning
+# - Component question control
+# - Reduced unnecessary expansion
+# - Evidence-only generation
 # =====================================================
 
 
@@ -8,15 +15,13 @@ import torch
 
 
 from transformers import (
-
     AutoTokenizer,
-
     AutoModelForCausalLM
-
 )
 
 
 from generation.output_cleaner import OutputCleaner
+
 
 
 
@@ -29,11 +34,8 @@ class QwenGenerator:
 
 
         print(
-
             "Loading Qwen model..."
-
         )
-
 
 
         self.model_name = (
@@ -43,13 +45,11 @@ class QwenGenerator:
         )
 
 
-
         self.tokenizer = AutoTokenizer.from_pretrained(
 
             self.model_name
 
         )
-
 
 
         self.model = AutoModelForCausalLM.from_pretrained(
@@ -61,7 +61,6 @@ class QwenGenerator:
             device_map="auto"
 
         )
-
 
 
         self.cleaner = OutputCleaner()
@@ -77,9 +76,12 @@ class QwenGenerator:
 
 
 
-    # =================================================
+
+
+
+    # =====================================================
     # Generate Answer
-    # =================================================
+    # =====================================================
 
 
     def generate(
@@ -94,40 +96,200 @@ class QwenGenerator:
 
 
 
-        prompt = f"""
+        if not context.strip():
 
-You are AC-RAG, a trustworthy academic AI assistant.
 
-Generate a concise answer based ONLY on the evidence.
+            return (
 
-Rules:
+                "No relevant information was found."
 
-- Answer directly.
-- Do not mention documents, context, or evidence.
-- Do not explain your reasoning process.
-- Do not repeat the question.
-- Do not add unsupported information.
-- Do not use absolute claims such as completely, always, never.
-- Maximum length: 2 short paragraphs.
+            )
 
-If the information is unavailable, respond only:
 
-No relevant information was found.
 
+
+
+
+        messages = [
+
+
+
+            {
+
+
+                "role":
+
+                "system",
+
+
+
+                "content":
+
+                """
+
+You are an academic AI assistant specialized in evidence-grounded question answering.
+
+
+
+Your task is to answer ONLY using the provided information.
+
+
+
+========================
+STRICT EVIDENCE RULES
+========================
+
+
+1. Answer the user question directly.
+
+2. Use only facts explicitly supported by the provided information.
+
+3. Do not introduce external knowledge, examples, comparisons, or research findings.
+
+4. Do not add technical mechanisms unless they are clearly mentioned in the evidence.
+
+5. Do not mention documents, context, retrieval process, AC-RAG, or internal system details.
+
+6. Do not explain your reasoning process.
+
+7. If evidence is insufficient, clearly state that the information is not available.
+
+8. Do not convert similarity into certainty.
+
+
+
+========================
+QUESTION TYPE RULES
+========================
+
+
+For component/architecture questions:
+
+
+- Provide only the requested components and their basic functions.
+
+- Do not add advanced implementation details.
+
+- Do not add speculative mechanisms.
+
+
+
+For definition questions:
+
+
+- Give a concise definition first.
+
+- Add only directly supported explanation.
+
+
+
+For yes/no questions:
+
+
+- Start with Yes or No only if evidence supports it.
+
+- Do not accept false assumptions in the question.
+
+- For words such as:
+  "always",
+  "guarantee",
+  "100%",
+  "completely",
+
+  explain limitations carefully.
+
+
+
+========================
+HALLUCINATION CONTROL
+========================
+
+
+- RAG may reduce hallucination but does not guarantee complete elimination.
+
+- Do not claim certainty beyond the evidence.
+
+- Do not add information about other technologies or applications unless explicitly provided.
+
+
+
+========================
+ANSWER STYLE
+========================
+
+
+- Simple questions: maximum 100 words.
+
+- Technical questions: maximum 180 words.
+
+- Use concise academic language.
+
+- Focus only on answering the asked question.
+
+
+
+"""
+
+            },
+
+
+
+            {
+
+
+                "role":
+
+                "user",
+
+
+
+                "content":
+
+
+                f"""
 
 Information:
+
 
 {context}
 
 
+
 Question:
+
 
 {question}
 
 
-Response:
+
+Answer:
 
 """
+
+            }
+
+
+        ]
+
+
+
+
+
+
+
+        prompt = self.tokenizer.apply_chat_template(
+
+            messages,
+
+            tokenize=False,
+
+            add_generation_prompt=True
+
+        )
+
+
+
+
 
 
 
@@ -149,14 +311,27 @@ Response:
 
 
 
+
+
+
+
+        input_length = inputs.input_ids.shape[1]
+
+
+
+
+
+
+
         with torch.no_grad():
+
 
 
             outputs = self.model.generate(
 
                 **inputs,
 
-                max_new_tokens=220,
+                max_new_tokens=180,
 
                 do_sample=False,
 
@@ -168,9 +343,29 @@ Response:
 
 
 
-        response = self.tokenizer.decode(
 
-            outputs[0],
+
+
+
+        generated_tokens = outputs[
+
+            0
+
+        ][
+
+            input_length:
+
+        ]
+
+
+
+
+
+
+
+        answer = self.tokenizer.decode(
+
+            generated_tokens,
 
             skip_special_tokens=True
 
@@ -178,11 +373,7 @@ Response:
 
 
 
-        answer = response.split(
 
-            "Response:"
-
-        )[-1]
 
 
 
@@ -191,6 +382,23 @@ Response:
             answer
 
         )
+
+
+
+
+
+
+
+        if not answer:
+
+
+            answer = (
+
+                "No relevant information was found."
+
+            )
+
+
 
 
 

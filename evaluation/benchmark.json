@@ -1,0 +1,158 @@
+[
+    {
+        "id": 1,
+        "category": "basic",
+        "question": "What is Retrieval Augmented Generation?"
+    },
+    {
+        "id": 2,
+        "category": "basic",
+        "question": "Why is Retrieval Augmented Generation used with Large Language Models?"
+    },
+    {
+        "id": 3,
+        "category": "basic",
+        "question": "What problem does RAG solve in traditional Large Language Models?"
+    },
+    {
+        "id": 4,
+        "category": "basic",
+        "question": "How does RAG combine retrieval and generation?"
+    },
+    {
+        "id": 5,
+        "category": "basic",
+        "question": "What is the role of external knowledge sources in RAG?"
+    },
+    {
+        "id": 6,
+        "category": "basic",
+        "question": "What is hallucination in Large Language Models?"
+    },
+    {
+        "id": 7,
+        "category": "basic",
+        "question": "How can RAG improve factual accuracy of generated responses?"
+    },
+    {
+        "id": 8,
+        "category": "basic",
+        "question": "What are the main components of a RAG system?"
+    },
+    {
+        "id": 9,
+        "category": "basic",
+        "question": "What is the difference between a language model and a RAG system?"
+    },
+    {
+        "id": 10,
+        "category": "basic",
+        "question": "Why is RAG important for knowledge-intensive applications?"
+    },
+
+
+    {
+        "id": 11,
+        "category": "reasoning",
+        "question": "How does hybrid retrieval improve RAG performance compared with dense retrieval alone?"
+    },
+    {
+        "id": 12,
+        "category": "reasoning",
+        "question": "What is the advantage of combining BM25 and vector retrieval in RAG?"
+    },
+    {
+        "id": 13,
+        "category": "reasoning",
+        "question": "Why is reranking important after initial document retrieval?"
+    },
+    {
+        "id": 14,
+        "category": "reasoning",
+        "question": "How does adaptive retrieval improve traditional RAG pipelines?"
+    },
+    {
+        "id": 15,
+        "category": "reasoning",
+        "question": "Why should a RAG system evaluate retrieved evidence quality before generation?"
+    },
+    {
+        "id": 16,
+        "category": "reasoning",
+        "question": "How can query decomposition improve multi-step question answering in RAG?"
+    },
+    {
+        "id": 17,
+        "category": "reasoning",
+        "question": "Why can static retrieval strategies fail for complex user queries?"
+    },
+    {
+        "id": 18,
+        "category": "reasoning",
+        "question": "How does answer verification improve trustworthiness of RAG systems?"
+    },
+    {
+        "id": 19,
+        "category": "reasoning",
+        "question": "Why is self-correction useful in Retrieval Augmented Generation?"
+    },
+    {
+        "id": 20,
+        "category": "reasoning",
+        "question": "How can evidence-based verification reduce hallucination?"
+    },
+
+
+    {
+        "id": 21,
+        "category": "hallucination",
+        "question": "Does RAG completely eliminate hallucination in Large Language Models?"
+    },
+    {
+        "id": 22,
+        "category": "hallucination",
+        "question": "Can RAG guarantee 100 percent accurate answers?"
+    },
+    {
+        "id": 23,
+        "category": "hallucination",
+        "question": "Does retrieving documents always ensure a correct answer?"
+    },
+    {
+        "id": 24,
+        "category": "hallucination",
+        "question": "Can a language model never produce incorrect information when using RAG?"
+    },
+    {
+        "id": 25,
+        "category": "hallucination",
+        "question": "Is RAG a perfect solution for all hallucination problems?"
+    },
+
+
+    {
+        "id": 26,
+        "category": "unknown",
+        "question": "Explain the role of quantum computing in improving RAG retrieval systems."
+    },
+    {
+        "id": 27,
+        "category": "unknown",
+        "question": "How does RAG use biological neural circuits for document retrieval?"
+    },
+    {
+        "id": 28,
+        "category": "unknown",
+        "question": "Explain the relationship between RAG and time travel technology."
+    },
+    {
+        "id": 29,
+        "category": "unknown",
+        "question": "How can RAG improve artificial gravity systems in space missions?"
+    },
+    {
+        "id": 30,
+        "category": "unknown",
+        "question": "Describe the use of RAG in controlling human emotions through AI."
+    }
+]

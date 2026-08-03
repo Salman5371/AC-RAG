@@ -1,31 +1,19 @@
 # =====================================================
-# AC-RAG Adaptive Self-Correcting Retriever
-# Root Execution Compatible Version
+# AC-RAG Adaptive Retriever v6.1
+# Adaptive Evidence-Aware Retrieval
+#
+# Features:
+# - Hybrid Retrieval (FAISS + BM25)
+# - Neural Reranking
+# - Evidence Validation
+# - Adaptive Re-retrieval
+# - Debug Evidence Inspection
 # =====================================================
 
 
-import os
-import sys
-
-
-ROOT_DIR = os.path.dirname(
-    os.path.dirname(
-        os.path.abspath(__file__)
-    )
-)
-
-
-if ROOT_DIR not in sys.path:
-
-    sys.path.append(ROOT_DIR)
-
-
+from verification.context_checker import ContextQualityChecker
 
 from retrieval.reranker import Reranker
-
-from verification.context_checker import (
-    ContextQualityChecker
-)
 
 
 
@@ -34,11 +22,7 @@ class AdaptiveRetriever:
 
 
 
-    def __init__(
-        self,
-        retriever,
-        reranker=None
-    ):
+    def __init__(self, base_retriever):
 
 
         print(
@@ -46,199 +30,30 @@ class AdaptiveRetriever:
         )
 
 
-        self.retriever = retriever
+        self.base_retriever = base_retriever
 
 
+        self.reranker = Reranker()
 
-        if reranker:
 
-            self.reranker = reranker
+        self.context_checker = ContextQualityChecker()
 
-        else:
 
-            self.reranker = Reranker()
 
+        self.last_context_status = False
 
+        self.last_evidence_score = 0
 
-        self.context_checker = (
-            ContextQualityChecker()
-        )
 
 
 
 
-    def analyze_query(
-        self,
-        query
-    ):
+    # =====================================================
+    # Retrieve
+    # =====================================================
 
 
-        terms = [
-
-            "methods",
-            "techniques",
-            "compare",
-            "limitations",
-            "advantages",
-            "improve",
-            "framework",
-            "architecture",
-            "process",
-            "explain",
-            "detailed"
-
-        ]
-
-
-        score = 0
-
-
-        for term in terms:
-
-            if term in query.lower():
-
-                score += 1
-
-
-
-        if len(query.split()) > 10:
-
-            score += 1
-
-
-
-        if score >= 2:
-
-            return "Complex"
-
-
-        return "Simple"
-
-
-
-
-    def check_context_quality(
-        self,
-        query,
-        docs
-    ):
-
-
-        texts = []
-
-
-        for doc in docs:
-
-            texts.append(
-                doc["text"]
-            )
-
-
-
-        result = self.context_checker.check_context(
-
-            query,
-
-            texts
-
-        )
-
-
-
-        print(
-            "Evidence Score:",
-            result["evidence_score"]
-        )
-
-
-        print(
-            "Context Sufficient:",
-            result["sufficient"]
-        )
-
-
-
-        return result["sufficient"]
-
-
-
-
-    def retrieve_documents(
-        self,
-        query,
-        top_k
-    ):
-
-
-        docs = self.retriever.search(
-
-            query,
-
-            top_k=top_k
-
-        )
-
-
-        print(
-            "Retrieved documents:",
-            len(docs)
-        )
-
-
-
-        print(
-            "\nReranking documents..."
-        )
-
-
-
-        ranked = self.reranker.rerank(
-
-            query,
-
-            docs
-
-        )
-
-
-        return ranked
-
-
-
-
-    def reformulate_query(
-        self,
-        query
-    ):
-
-
-        new_query = (
-
-            "Provide detailed academic information about: "
-
-            +
-
-            query
-
-        )
-
-
-        print(
-            "Reformulated Query:",
-            new_query
-        )
-
-
-        return new_query
-
-
-
-
-    def retrieve(
-        self,
-        query
-    ):
-
+    def retrieve(self, query):
 
 
         print(
@@ -253,34 +68,62 @@ class AdaptiveRetriever:
 
 
 
-        query_type = self.analyze_query(
-            query
-        )
+        # =================================================
+        # Stage 1: Hybrid Retrieval
+        # =================================================
 
 
-        print(
-            "Query Type:",
-            query_type
-        )
-
-
-
-        if query_type == "Complex":
-
-            top_k = 50
-
-        else:
-
-            top_k = 25
-
-
-
-
-        ranked_docs = self.retrieve_documents(
+        documents = self.base_retriever.search(
 
             query,
 
-            top_k
+            top_k=50
+
+        )
+
+
+
+        print(
+
+            "Retrieved documents:",
+
+            len(documents)
+
+        )
+
+
+
+        if not documents:
+
+
+            self.last_context_status = False
+
+            self.last_evidence_score = 0
+
+
+            return []
+
+
+
+
+
+        # =================================================
+        # Stage 2: Neural Reranking
+        # =================================================
+
+
+        print(
+
+            "\nReranking documents..."
+
+        )
+
+
+        ranked_docs = self.reranker.rerank(
+
+            query,
+
+            documents
 
         )
 
@@ -291,38 +134,137 @@ class AdaptiveRetriever:
 
 
         print(
+
             "Initial selected documents:",
+
             len(selected_docs)
+
         )
 
 
 
-        context_ok = self.check_context_quality(
+
+
+        # Debug evidence inspection
+
+        print(
+
+            "\nTop Evidence Preview:"
+
+        )
+
+
+        for i, doc in enumerate(selected_docs):
+
+
+            print(
+
+                "\nDOC",
+
+                i+1
+
+            )
+
+
+            print(
+
+                doc["text"][:200]
+
+            )
+
+
+
+
+
+        # =================================================
+        # Stage 3: Context Quality Checking
+        # =================================================
+
+
+        texts = [
+
+            doc["text"]
+
+            for doc in selected_docs
+
+        ]
+
+
+
+        quality = self.context_checker.check_context(
 
             query,
 
-            selected_docs
+            texts
 
         )
 
 
 
-        if not context_ok:
+        self.last_evidence_score = quality[
 
+            "evidence_score"
+
+        ]
+
+
+        self.last_context_status = quality[
+
+            "sufficient"
+
+        ]
+
+
+
+        print(
+
+            "Evidence Score:",
+
+            self.last_evidence_score
+
+        )
+
+
+        print(
+
+            "Context Sufficient:",
+
+            self.last_context_status
+
+        )
+
+
+
+
+
+        # =================================================
+        # Stage 4: Adaptive Retrieval
+        # =================================================
+
+
+        if not self.last_context_status:
 
 
             print(
+
                 "\nWeak evidence detected..."
+
             )
 
 
             print(
+
                 "Activating adaptive retrieval..."
+
             )
 
 
 
-            new_query = self.reformulate_query(
+            refined_query = (
+
+                "Provide detailed academic information about: "
+
+                +
 
                 query
 
@@ -330,54 +272,145 @@ class AdaptiveRetriever:
 
 
 
-            ranked_docs = self.retrieve_documents(
+            print(
 
-                new_query,
+                "Reformulated Query:",
 
-                top_k + 25
+                refined_query
 
             )
 
 
 
-            selected_docs = ranked_docs[:8]
+
+            more_documents = self.base_retriever.search(
+
+                refined_query,
+
+                top_k=80
+
+            )
 
 
 
             print(
-                "After correction selected documents:",
-                len(selected_docs)
-            )
 
+                "Retrieved documents:",
 
-
-            print(
-                "\nRe-checking improved context..."
-            )
-
-
-
-            retry = self.check_context_quality(
-
-                new_query,
-
-                selected_docs
+                len(more_documents)
 
             )
 
 
 
-            if retry:
+            if more_documents:
+
 
                 print(
-                    "Improved evidence accepted."
+
+                    "\nReranking adaptive results..."
+
                 )
 
-            else:
+
+
+                reranked = self.reranker.rerank(
+
+                    refined_query,
+
+                    more_documents
+
+                )
+
+
+
+                adaptive_docs = reranked[:8]
+
+
 
                 print(
-                    "Evidence still insufficient."
+
+                    "Adaptive selected documents:",
+
+                    len(adaptive_docs)
+
                 )
+
+
+
+
+                new_texts = [
+
+                    doc["text"]
+
+                    for doc in adaptive_docs
+
+                ]
+
+
+
+
+                print(
+
+                    "\nRe-checking improved context..."
+
+                )
+
+
+
+                improved_quality = self.context_checker.check_context(
+
+                    query,
+
+                    new_texts
+
+                )
+
+
+
+                self.last_evidence_score = improved_quality[
+
+                    "evidence_score"
+
+                ]
+
+
+                self.last_context_status = improved_quality[
+
+                    "sufficient"
+
+                ]
+
+
+
+
+                if self.last_context_status:
+
+
+                    print(
+
+                        "Improved evidence accepted."
+
+                    )
+
+
+                    selected_docs = adaptive_docs
+
+
+
+                else:
+
+
+                    print(
+
+                        "Evidence still insufficient."
+
+                    )
+
+
+                    selected_docs = adaptive_docs
+
+
 
 
 
@@ -385,8 +418,12 @@ class AdaptiveRetriever:
 
 
             print(
+
                 "Evidence quality acceptable."
+
             )
+
+
 
 
 

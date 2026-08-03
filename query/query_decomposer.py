@@ -1,6 +1,12 @@
 # =====================================================
-# AC-RAG Query Decomposer v3
-# Multi Intent Query Understanding Module
+# AC-RAG Query Decomposer v4.1
+# Multi Intent + Query Expansion Module
+#
+# Improvements:
+# - Better Question Separation
+# - Sentence Boundary Detection
+# - Controlled Query Expansion
+# - Duplicate Removal
 # =====================================================
 
 
@@ -20,27 +26,75 @@ class QueryDecomposer:
         )
 
 
+        self.expansion_terms = {
+
+
+            "components": [
+
+                "architecture",
+                "modules",
+                "pipeline",
+                "framework",
+                "workflow"
+
+            ],
+
+
+            "retrieval augmented generation": [
+
+                "retrieval",
+                "generation",
+                "augmentation"
+
+            ],
+
+
+            "hallucination": [
+
+                "factual errors",
+                "incorrect answers",
+                "faithfulness"
+
+            ],
+
+
+            "verification": [
+
+                "validation",
+                "fact checking",
+                "answer checking"
+
+            ],
+
+
+            "self-correction": [
+
+                "feedback",
+                "error correction",
+                "refinement"
+
+            ]
+
+        }
+
+
+
+
+
 
     # =====================================================
     # Query Cleaning
     # =====================================================
 
 
-    def clean_query(
+    def clean_query(self, text):
 
-        self,
-
-        text
-
-    ):
-
-
-        # Remove quotes
 
         text = text.replace(
             '"',
             ""
         )
+
 
         text = text.replace(
             "'",
@@ -48,7 +102,30 @@ class QueryDecomposer:
         )
 
 
-        # Remove extra spaces
+        # Fix missing spaces after punctuation
+
+        text = re.sub(
+
+            r"\?(?=[A-Za-z])",
+
+            "? ",
+
+            text
+
+        )
+
+
+        text = re.sub(
+
+            r"\.(?=[A-Z])",
+
+            ". ",
+
+            text
+
+        )
+
+
 
         text = re.sub(
 
@@ -65,7 +142,16 @@ class QueryDecomposer:
 
 
 
-        # Remove wrong punctuation
+        text = re.sub(
+
+            r"\?+",
+
+            "?",
+
+            text
+
+        )
+
 
         text = re.sub(
 
@@ -78,18 +164,6 @@ class QueryDecomposer:
         )
 
 
-        text = re.sub(
-
-            r"\?+",
-
-            "?",
-
-            text
-
-        )
-
-
-        # Fix .?
 
         text = text.replace(
 
@@ -105,19 +179,123 @@ class QueryDecomposer:
 
 
 
+
+
+
+    # =====================================================
+    # Query Expansion
+    # =====================================================
+
+
+    def expand_query(self, query):
+
+
+        lower_query = query.lower()
+
+
+        added_terms = []
+
+
+
+        for key, values in self.expansion_terms.items():
+
+
+            if key in lower_query:
+
+
+                added_terms.extend(
+
+                    values
+
+                )
+
+
+
+        # Special handling for RAG abbreviation
+
+
+        if re.search(
+
+            r"\brag\b",
+
+            lower_query
+
+        ):
+
+
+            added_terms.extend(
+
+                [
+
+                    "retrieval",
+
+                    "generation",
+
+                    "augmentation"
+
+                ]
+
+            )
+
+
+
+        if added_terms:
+
+
+            # remove duplicates
+
+            added_terms = list(
+
+                dict.fromkeys(
+
+                    added_terms
+
+                )
+
+            )
+
+
+            expansion = ", ".join(
+
+                added_terms
+
+            )
+
+
+            query = (
+
+                query.rstrip("?")
+
+                +
+
+                " including "
+
+                +
+
+                expansion
+
+                +
+
+                "?"
+
+            )
+
+
+
+        return query
+
+
+
+
+
+
+
     # =====================================================
     # Main Decomposition
     # =====================================================
 
 
-    def decompose(
-
-        self,
-
-        query
-
-    ):
-
+    def decompose(self, query):
 
 
         print(
@@ -140,14 +318,12 @@ class QueryDecomposer:
 
 
 
-        # -------------------------------------
         # Split by question marks
-        # -------------------------------------
 
 
         parts = re.split(
 
-            r"\?+",
+            r"\?",
 
             query
 
@@ -156,7 +332,6 @@ class QueryDecomposer:
 
 
         for part in parts:
-
 
 
             part = part.strip()
@@ -169,25 +344,13 @@ class QueryDecomposer:
 
 
 
-            part = self.clean_query(
-
-                part
-
-            )
-
-
-
-            # Remove ending punctuation
-
             part = part.rstrip(
 
-                ".?"
+                ". "
 
             )
 
 
-
-            # Add final question mark
 
             part += "?"
 
@@ -203,9 +366,68 @@ class QueryDecomposer:
 
 
 
-        # -------------------------------------
-        # Handle newline separated questions
-        # -------------------------------------
+
+
+        # =================================================
+        # Sentence based split
+        # =================================================
+
+
+        if len(queries) == 1:
+
+
+            sentences = re.split(
+
+                r"(?<=[.!?])\s+(?=[A-Z])",
+
+                query
+
+            )
+
+
+            temp = []
+
+
+
+            for sentence in sentences:
+
+
+                sentence = sentence.strip()
+
+
+
+                if len(sentence) > 10:
+
+
+                    sentence = sentence.rstrip(
+
+                        ".?"
+
+                    )
+
+
+                    temp.append(
+
+                        sentence + "?"
+
+                    )
+
+
+
+            if len(temp) > 1:
+
+
+                queries = temp
+
+
+
+
+
+
+
+        # =================================================
+        # Newline split
+        # =================================================
 
 
         if len(queries) == 1:
@@ -225,19 +447,7 @@ class QueryDecomposer:
             for line in lines:
 
 
-
-                line = self.clean_query(
-
-                    line
-
-                )
-
-
-                line = line.rstrip(
-
-                    ".?"
-
-                )
+                line = line.strip()
 
 
 
@@ -246,7 +456,7 @@ class QueryDecomposer:
 
                     temp.append(
 
-                        line + "?"
+                        line.rstrip(".?") + "?"
 
                     )
 
@@ -261,9 +471,11 @@ class QueryDecomposer:
 
 
 
-        # -------------------------------------
+
+
+        # =================================================
         # Remove duplicates
-        # -------------------------------------
+        # =================================================
 
 
         unique_queries = []
@@ -273,15 +485,10 @@ class QueryDecomposer:
         for q in queries:
 
 
-
             if q not in unique_queries:
 
 
-                unique_queries.append(
-
-                    q
-
-                )
+                unique_queries.append(q)
 
 
 
@@ -291,12 +498,8 @@ class QueryDecomposer:
 
 
 
-        # -------------------------------------
-        # Fallback
-        # -------------------------------------
 
-
-        if len(queries) == 0:
+        if not queries:
 
 
             queries = [
@@ -309,21 +512,43 @@ class QueryDecomposer:
 
 
 
+
+
+        # =================================================
+        # Expansion Layer
+        # =================================================
+
+
+        expanded_queries = []
+
+
+
+        for q in queries:
+
+
+            expanded_queries.append(
+
+                self.expand_query(q)
+
+            )
+
+
+
+
+
+
+
         print(
 
             "Sub Queries:",
 
-            len(queries)
+            len(expanded_queries)
 
         )
 
 
 
-        for i,q in enumerate(
-
-            queries
-
-        ):
+        for i,q in enumerate(expanded_queries):
 
 
             print(
@@ -334,4 +559,4 @@ class QueryDecomposer:
 
 
 
-        return queries
+        return expanded_queries
