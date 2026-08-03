@@ -1,148 +1,126 @@
 # =====================================================
 # AC-RAG Adaptive Retrieval Test
-# Hybrid Retrieval + Reranking + Metadata Output
 # =====================================================
 
 
 from retriever import HybridRetriever
-from reranker import Reranker
+
 from adaptive_retriever import AdaptiveRetriever
 
 
 
-print("\n========== AC-RAG ADAPTIVE TEST ==========\n")
+
+print(
+    "\n========== AC-RAG ADAPTIVE TEST =========="
+)
 
 
-
-# ==========================
-# Load Retriever
-# ==========================
 
 retriever = HybridRetriever()
 
 
 
-# ==========================
-# Load Reranker
-# ==========================
-
-reranker = Reranker()
-
-
-
-# ==========================
-# Adaptive Retriever
-# ==========================
-
 adaptive = AdaptiveRetriever(
-    retriever,
-    reranker
+
+    retriever
+
 )
 
 
 
-# ==========================
-# User Query
-# ==========================
 
-query = input(
-    "\nEnter question: "
-)
+questions = [
 
 
-
-# ==========================
-# Retrieve + Rerank
-# ==========================
-
-results = adaptive.retrieve(
-    query
-)
+    "What is Retrieval Augmented Generation?",
 
 
+    "How does RAG reduce hallucination?",
 
-# ==========================
-# Display Results
-# ==========================
 
-print(
-    "\n========== FINAL RESULTS =========="
-)
+    "What are the methods used to improve retrieval quality in RAG systems?",
+
+
+    "Explain the role of quantum computing in improving RAG retrieval systems."
+
+]
 
 
 
-for i, item in enumerate(results):
+
+for i, question in enumerate(questions):
 
 
     print(
-        "\nResult:",
-        i + 1
+        "\n\n=============================="
     )
 
 
     print(
-        "--------------------------------"
+        "QUESTION:",
+        i+1
     )
 
 
-    # Metadata output
+    print(
+        question
+    )
+
 
     print(
-        "Chunk ID:",
-        item.get(
-            "chunk_id",
-            "N/A"
+        "=============================="
+    )
+
+
+
+    results = adaptive.retrieve(
+
+        question
+
+    )
+
+
+
+    print(
+        "\nFINAL RESULTS:",
+        len(results)
+    )
+
+
+
+    for idx, doc in enumerate(results):
+
+
+        print(
+            "\nResult:",
+            idx+1
         )
-    )
 
 
-    print(
-        "BM25 Score:",
-        item.get(
-            "bm25_score",
-            0
+        print(
+            "Chunk ID:",
+            doc.get(
+                "chunk_id"
+            )
         )
-    )
 
 
-    print(
-        "FAISS Score:",
-        item.get(
-            "faiss_score",
-            0
+        print(
+            "Reranker Score:",
+            doc.get(
+                "reranker_score"
+            )
         )
-    )
 
 
-    print(
-        "Hybrid Score:",
-        item.get(
-            "hybrid_score",
-            0
+        print(
+            "Context:"
         )
-    )
 
 
-    print(
-        "Reranker Score:",
-        item.get(
-            "reranker_score",
-            0
+        print(
+            doc["text"][:300]
         )
-    )
-
-
-    print(
-        "\nContext:"
-    )
-
-
-    print(
-        item.get(
-            "text",
-            ""
-        )[:700]
-    )
 
 
 

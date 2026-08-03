@@ -1,6 +1,6 @@
 # =====================================================
-# AC-RAG Qwen Generator
-# Grounded Academic Answer Generation
+# AC-RAG Qwen Generator v4
+# Clean Academic Generation
 # =====================================================
 
 
@@ -8,9 +8,16 @@ import torch
 
 
 from transformers import (
+
     AutoTokenizer,
+
     AutoModelForCausalLM
+
 )
+
+
+from generation.output_cleaner import OutputCleaner
+
 
 
 
@@ -22,19 +29,25 @@ class QwenGenerator:
 
 
         print(
+
             "Loading Qwen model..."
+
         )
 
 
 
         self.model_name = (
+
             "Qwen/Qwen2.5-3B-Instruct"
+
         )
 
 
 
         self.tokenizer = AutoTokenizer.from_pretrained(
+
             self.model_name
+
         )
 
 
@@ -51,48 +64,60 @@ class QwenGenerator:
 
 
 
+        self.cleaner = OutputCleaner()
+
+
+
         print(
+
             "Qwen loaded successfully"
+
         )
 
 
 
 
+    # =================================================
+    # Generate Answer
+    # =================================================
+
+
     def generate(
+
         self,
+
         question,
+
         context
+
     ):
 
 
 
         prompt = f"""
 
-You are an expert research assistant specialized in
-Retrieval-Augmented Generation (RAG).
+You are AC-RAG, a trustworthy academic AI assistant.
 
-Your task is to answer the user's question using ONLY
-the provided context.
+Generate a concise answer based ONLY on the evidence.
 
-Strict rules:
+Rules:
 
-1. Do not use external knowledge.
-2. Do not invent information.
-3. If the context does not contain the answer, clearly state:
-   "The provided context does not contain sufficient information."
+- Answer directly.
+- Do not mention documents, context, or evidence.
+- Do not explain your reasoning process.
+- Do not repeat the question.
+- Do not add unsupported information.
+- Do not use absolute claims such as completely, always, never.
+- Maximum length: 2 short paragraphs.
 
-4. Write a clear academic answer.
-5. Organize the answer with:
-   - Definition / Introduction
-   - Key explanation
-   - Important points (if applicable)
+If the information is unavailable, respond only:
 
-Retrieved Context:
-------------------
+No relevant information was found.
+
+
+Information:
 
 {context}
-
-------------------
 
 
 Question:
@@ -100,7 +125,7 @@ Question:
 {question}
 
 
-Final Answer:
+Response:
 
 """
 
@@ -117,9 +142,10 @@ Final Answer:
             max_length=4096
 
         ).to(
-            self.model.device
-        )
 
+            self.model.device
+
+        )
 
 
 
@@ -130,16 +156,15 @@ Final Answer:
 
                 **inputs,
 
-                max_new_tokens=512,
-
-                temperature=0.1,
+                max_new_tokens=220,
 
                 do_sample=False,
 
-                repetition_penalty=1.1
+                repetition_penalty=1.15,
+
+                pad_token_id=self.tokenizer.eos_token_id
 
             )
-
 
 
 
@@ -153,13 +178,20 @@ Final Answer:
 
 
 
-
         answer = response.split(
 
-            "Final Answer:"
+            "Response:"
 
         )[-1]
 
 
 
-        return answer.strip()
+        answer = self.cleaner.clean(
+
+            answer
+
+        )
+
+
+
+        return answer

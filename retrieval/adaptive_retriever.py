@@ -1,7 +1,6 @@
 # =====================================================
-# AC-RAG Adaptive Retriever
-# Adaptive Query Analysis + Hybrid Retrieval + Reranking
-# Balanced Generation Optimized Version
+# AC-RAG Adaptive Self-Correcting Retriever
+# Root Execution Compatible Version
 # =====================================================
 
 
@@ -9,18 +8,30 @@ import os
 import sys
 
 
-CURRENT_DIR = os.path.dirname(
-    os.path.abspath(__file__)
+ROOT_DIR = os.path.dirname(
+    os.path.dirname(
+        os.path.abspath(__file__)
+    )
 )
 
-sys.path.append(CURRENT_DIR)
+
+if ROOT_DIR not in sys.path:
+
+    sys.path.append(ROOT_DIR)
 
 
-from reranker import Reranker
+
+from retrieval.reranker import Reranker
+
+from verification.context_checker import (
+    ContextQualityChecker
+)
+
 
 
 
 class AdaptiveRetriever:
+
 
 
     def __init__(
@@ -38,6 +49,7 @@ class AdaptiveRetriever:
         self.retriever = retriever
 
 
+
         if reranker:
 
             self.reranker = reranker
@@ -48,9 +60,11 @@ class AdaptiveRetriever:
 
 
 
-    # =====================================================
-    # Query Complexity Detection
-    # =====================================================
+        self.context_checker = (
+            ContextQualityChecker()
+        )
+
+
 
 
     def analyze_query(
@@ -59,19 +73,18 @@ class AdaptiveRetriever:
     ):
 
 
-        complex_words = [
+        terms = [
 
             "methods",
             "techniques",
-            "explain",
             "compare",
-            "advantages",
             "limitations",
+            "advantages",
             "improve",
             "framework",
             "architecture",
             "process",
-            "everything",
+            "explain",
             "detailed"
 
         ]
@@ -80,9 +93,9 @@ class AdaptiveRetriever:
         score = 0
 
 
-        for word in complex_words:
+        for term in terms:
 
-            if word in query.lower():
+            if term in query.lower():
 
                 score += 1
 
@@ -104,69 +117,93 @@ class AdaptiveRetriever:
 
 
 
-    # =====================================================
-    # Retrieval Quality Check
-    # =====================================================
-
-
-    def check_quality(
+    def check_context_quality(
         self,
+        query,
         docs
     ):
 
 
-        if not docs:
-
-            return False
-
-
-
-        total_length = 0
-
+        texts = []
 
 
         for doc in docs:
 
-
-            if isinstance(doc, dict):
-
-                text = doc.get(
-                    "text",
-                    ""
-                )
-
-
-            else:
-
-                text = str(doc)
+            texts.append(
+                doc["text"]
+            )
 
 
 
-            total_length += len(text)
+        result = self.context_checker.check_context(
+
+            query,
+
+            texts
+
+        )
 
 
 
-        avg_length = (
-            total_length /
+        print(
+            "Evidence Score:",
+            result["evidence_score"]
+        )
+
+
+        print(
+            "Context Sufficient:",
+            result["sufficient"]
+        )
+
+
+
+        return result["sufficient"]
+
+
+
+
+    def retrieve_documents(
+        self,
+        query,
+        top_k
+    ):
+
+
+        docs = self.retriever.search(
+
+            query,
+
+            top_k=top_k
+
+        )
+
+
+        print(
+            "Retrieved documents:",
             len(docs)
         )
 
 
 
         print(
-            "Average document length:",
-            avg_length
+            "\nReranking documents..."
         )
 
 
-        return avg_length > 200
+
+        ranked = self.reranker.rerank(
+
+            query,
+
+            docs
+
+        )
 
 
+        return ranked
 
 
-    # =====================================================
-    # Query Reformulation
-    # =====================================================
 
 
     def reformulate_query(
@@ -177,8 +214,10 @@ class AdaptiveRetriever:
 
         new_query = (
 
-            "Provide academic explanation with important concepts about: "
+            "Provide detailed academic information about: "
+
             +
+
             query
 
         )
@@ -195,15 +234,11 @@ class AdaptiveRetriever:
 
 
 
-    # =====================================================
-    # Adaptive Retrieval Pipeline
-    # =====================================================
-
-
     def retrieve(
         self,
         query
     ):
+
 
 
         print(
@@ -218,8 +253,6 @@ class AdaptiveRetriever:
 
 
 
-        # Query analysis
-
         query_type = self.analyze_query(
             query
         )
@@ -232,174 +265,129 @@ class AdaptiveRetriever:
 
 
 
-        # Dynamic retrieval size
-
         if query_type == "Complex":
 
-            top_k = 70
-
+            top_k = 50
 
         else:
 
-            top_k = 40
+            top_k = 25
 
 
 
 
-        # Initial retrieval
+        ranked_docs = self.retrieve_documents(
 
-        docs = self.retriever.search(
             query,
-            top_k=top_k
+
+            top_k
+
         )
+
+
+
+        selected_docs = ranked_docs[:5]
 
 
 
         print(
-            "Retrieved documents:",
-            len(docs)
+            "Initial selected documents:",
+            len(selected_docs)
         )
 
 
 
-        # Quality checking
+        context_ok = self.check_context_quality(
 
-        if not self.check_quality(docs):
+            query,
+
+            selected_docs
+
+        )
+
+
+
+        if not context_ok:
+
 
 
             print(
-                "Low quality retrieval detected..."
+                "\nWeak evidence detected..."
             )
 
 
-            query = self.reformulate_query(
+            print(
+                "Activating adaptive retrieval..."
+            )
+
+
+
+            new_query = self.reformulate_query(
+
                 query
-            )
 
-
-            docs = self.retriever.search(
-                query,
-                top_k=top_k
             )
 
 
 
-        # Reranking
+            ranked_docs = self.retrieve_documents(
 
-        print(
-            "\nReranking documents..."
-        )
+                new_query,
 
+                top_k + 25
 
-        ranked_docs = self.reranker.rerank(
-            query,
-            docs
-        )
+            )
 
 
 
-        # =================================================
-        # Adaptive Score Filtering
-        # =================================================
+            selected_docs = ranked_docs[:8]
 
 
-        scores = []
+
+            print(
+                "After correction selected documents:",
+                len(selected_docs)
+            )
 
 
-        for item in ranked_docs:
+
+            print(
+                "\nRe-checking improved context..."
+            )
 
 
-            if isinstance(item, dict):
 
-                scores.append(
-                    item.get(
-                        "reranker_score",
-                        0
-                    )
+            retry = self.check_context_quality(
+
+                new_query,
+
+                selected_docs
+
+            )
+
+
+
+            if retry:
+
+                print(
+                    "Improved evidence accepted."
+                )
+
+            else:
+
+                print(
+                    "Evidence still insufficient."
                 )
 
 
 
-        selected_docs = []
-
-
-
-        if scores:
-
-
-            max_score = max(scores)
-
-
-            threshold = max_score * 0.25
-
+        else:
 
 
             print(
-                "Max reranker score:",
-                max_score
-            )
-
-
-            print(
-                "Adaptive threshold:",
-                threshold
+                "Evidence quality acceptable."
             )
 
 
 
-            for item in ranked_docs:
-
-
-                if item.get(
-                    "reranker_score",
-                    0
-                ) >= threshold:
-
-
-                    selected_docs.append(item)
-
-
-
-        else:
-
-
-            selected_docs = ranked_docs[:]
-
-
-
-
-        # =================================================
-        # Final Context Selection
-        # =================================================
-
-
-        if query_type == "Simple":
-
-
-            final_docs = selected_docs[:4]
-
-
-        else:
-
-
-            final_docs = selected_docs[:8]
-
-
-
-        # Safety fallback
-
-        if len(final_docs) < 2:
-
-
-            final_docs = ranked_docs[:4]
-
-
-
-        print(
-            "Final selected documents:",
-            len(final_docs)
-        )
-
-
-
-        return final_docs
+        return selected_docs
